@@ -1,519 +1,1064 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mira | The AI That Actually Understands</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            500: '#14b8a6', // Teal primary
-                            600: '#0d9488',
-                            900: '#134e4a',
-                        },
-                        dark: {
-                            900: '#0f172a', // Slate 900
-                            800: '#1e293b', // Slate 800
-                            700: '#334155',
-                        }
-                    },
-                    animation: {
-                        'fade-in-up': 'fadeInUp 0.8s ease-out',
-                        'blob': 'blob 7s infinite',
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                        }
-                    }
-                }
-            }
-        }
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+            },
+            colors: {
+              brand: {
+                50: "#f0fdfa",
+                100: "#ccfbf1",
+                500: "#14b8a6", // Teal primary
+                600: "#0d9488",
+                900: "#134e4a",
+              },
+              dark: {
+                900: "#0f172a", // Slate 900
+                800: "#1e293b", // Slate 800
+                700: "#334155",
+              },
+            },
+            animation: {
+              "fade-in-up": "fadeInUp 0.8s ease-out",
+              blob: "blob 7s infinite",
+            },
+            keyframes: {
+              fadeInUp: {
+                "0%": { opacity: "0", transform: "translateY(20px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+              blob: {
+                "0%": { transform: "translate(0px, 0px) scale(1)" },
+                "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                "100%": { transform: "translate(0px, 0px) scale(1)" },
+              },
+            },
+          },
+        },
+      };
     </script>
     <style>
-        /* Glassmorphism Utilities */
-        .glass {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        .glass-nav {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
+      /* Glassmorphism Utilities */
+      .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
 
-        /* Gradient Text */
-        .text-gradient {
-            background: linear-gradient(to right, #2dd4bf, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+      .glass-nav {
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
 
-        /* Accordion Transition */
-        .accordion-content {
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-        }
-        .accordion-content.active {
-            max-height: 200px; /* Arbitrary large height */
-            opacity: 1;
-        }
-        .accordion-icon {
-            transition: transform 0.3s ease;
-        }
-        .accordion-btn[aria-expanded="true"] .accordion-icon {
-            transform: rotate(180deg);
-        }
+      /* Gradient Text */
+      .text-gradient {
+        background: linear-gradient(to right, #2dd4bf, #818cf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      /* Accordion Transition */
+      .accordion-content {
+        transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+      }
+      .accordion-content.active {
+        max-height: 200px; /* Arbitrary large height */
+        opacity: 1;
+      }
+      .accordion-icon {
+        transition: transform 0.3s ease;
+      }
+      .accordion-btn[aria-expanded="true"] .accordion-icon {
+        transform: rotate(180deg);
+      }
     </style>
-</head>
-<body class="bg-dark-900 text-slate-300 font-sans antialiased overflow-x-hidden">
-
+  </head>
+  <body
+    class="bg-dark-900 text-slate-300 font-sans antialiased overflow-x-hidden"
+  >
     <!-- Ambient Background Glows -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
-        <div class="absolute top-0 right-1/4 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
-        <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-4000"></div>
+      <div
+        class="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"
+      ></div>
+      <div
+        class="absolute top-0 right-1/4 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"
+      ></div>
+      <div
+        class="absolute -bottom-32 left-1/3 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-4000"
+      ></div>
     </div>
 
     <!-- Navigation -->
     <nav class="fixed w-full z-50 glass-nav transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
-                <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center text-white font-bold">M</div>
-                    <span class="text-white text-xl font-semibold tracking-tight">Mira</span>
-                </div>
-                
-                <!-- Desktop Menu -->
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-8">
-                        <a href="#features" class="hover:text-white transition-colors text-sm font-medium">Features</a>
-                        <a href="#how-it-works" class="hover:text-white transition-colors text-sm font-medium">How it Works</a>
-                        <a href="#demo" class="hover:text-white transition-colors text-sm font-medium">Live Demo</a>
-                        <a href="#faq" class="hover:text-white transition-colors text-sm font-medium">FAQ</a>
-                    </div>
-                </div>
-
-                <!-- CTA -->
-                <div class="hidden md:block">
-                    <a href="http://127.0.0.1:8000/signup/" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)]">
-                        Get Started
-                    </a>
-                </div>
-
-                <!-- Mobile menu button -->
-                <div class="-mr-2 flex md:hidden">
-                    <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none">
-                        <i class="fa-solid fa-bars text-xl"></i>
-                    </button>
-                </div>
+      <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex items-center justify-between h-20">
+          <!-- Logo -->
+          <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
+            <div
+              class="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center text-white font-bold"
+            >
+              M
             </div>
+            <span class="text-white text-xl font-semibold tracking-tight"
+              >Mira</span
+            >
+          </div>
+
+          <!-- Desktop Menu -->
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-8">
+              <a
+                href="#features"
+                class="hover:text-white transition-colors text-sm font-medium"
+                >Features</a
+              >
+              <a
+                href="#how-it-works"
+                class="hover:text-white transition-colors text-sm font-medium"
+                >How it Works</a
+              >
+              <a
+                href="#demo"
+                class="hover:text-white transition-colors text-sm font-medium"
+                >Live Demo</a
+              >
+              <a
+                href="#faq"
+                class="hover:text-white transition-colors text-sm font-medium"
+                >FAQ</a
+              >
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="hidden md:block">
+            <a
+              href="http://127.0.0.1:8000/signup/"
+              class="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)]"
+            >
+              Get Started
+            </a>
+          </div>
+
+          <!-- Mobile menu button -->
+          <div class="-mr-2 flex md:hidden">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
+            >
+              <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+          </div>
         </div>
+      </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 text-center">
-            
-            <!-- Badge -->
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-xs font-semibold uppercase tracking-wide mb-8 animate-fade-in-up">
-                <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                v2.0 Now Live
-            </div>
-
-            <!-- Headline -->
-            <h1 class="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8 animate-fade-in-up" style="animation-delay: 0.1s;">
-                Customer Support that <br>
-                <span class="text-gradient">Actually Understands.</span>
-            </h1>
-
-            <!-- Subtext -->
-            <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400 mb-10 animate-fade-in-up leading-relaxed" style="animation-delay: 0.2s;">
-                Mira isn't just a chatbot with buttons. It's a dynamic AI that ingests your docs, learns your product, and handles complex queries with human-like intent—instantly deflecting 70% of support tickets.
-            </p>
-
-            <!-- Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up" style="animation-delay: 0.3s;">
-                <a href="https://wa.me/7008425781" target="_blank" class="group relative inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white transition-all duration-200 bg-teal-600 rounded-full hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600 focus:ring-offset-gray-900">
-                    <i class="fa-brands fa-whatsapp mr-2"></i> Connect via WhatsApp
-                    <div class="absolute inset-0 rounded-full ring-2 ring-white/20 group-hover:ring-white/40 transition-all"></div>
-                </a>
-                
-                <a href="#demo" class="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-slate-300 transition-all duration-200 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-white focus:outline-none">
-                    Try Live Demo
-                </a>
-                
-                 <!-- Mobile Only Signup -->
-                 <a href="http://127.0.0.1:8000/signup/" class="sm:hidden inline-flex items-center justify-center px-8 py-3.5 w-full text-base font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full">
-                    Sign Up Now
-                </a>
-            </div>
-
-            <!-- Hero Image / Dashboard Mockup -->
-            <div class="mt-20 relative animate-fade-in-up" style="animation-delay: 0.5s;">
-                <div class="absolute -inset-1 bg-gradient-to-r from-teal-500 to-purple-600 rounded-2xl blur opacity-30"></div>
-                <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-dark-800">
-                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop" alt="Dashboard Analytics" class="w-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-700">
-                    <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent"></div>
-                </div>
-            </div>
+      <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 text-center">
+        <!-- Badge -->
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-xs font-semibold uppercase tracking-wide mb-8 animate-fade-in-up"
+        >
+          <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+          v2.0 Now Live
         </div>
+
+        <!-- Headline -->
+        <h1
+          class="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8 animate-fade-in-up"
+          style="animation-delay: 0.1s"
+        >
+          Customer Support that <br />
+          <span class="text-gradient">Actually Understands.</span>
+        </h1>
+
+        <!-- Subtext -->
+        <p
+          class="mt-4 max-w-2xl mx-auto text-xl text-slate-400 mb-10 animate-fade-in-up leading-relaxed"
+          style="animation-delay: 0.2s"
+        >
+          Mira isn't just a chatbot with buttons. It's a dynamic AI that ingests
+          your docs, learns your product, and handles complex queries with
+          human-like intent—instantly deflecting 70% of support tickets.
+        </p>
+
+        <!-- Buttons -->
+        <div
+          class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up"
+          style="animation-delay: 0.3s"
+        >
+          <a
+            href="https://wa.me/7008425781"
+            target="_blank"
+            class="group relative inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white transition-all duration-200 bg-teal-600 rounded-full hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600 focus:ring-offset-gray-900"
+          >
+            <i class="fa-brands fa-whatsapp mr-2"></i> Connect via WhatsApp
+            <div
+              class="absolute inset-0 rounded-full ring-2 ring-white/20 group-hover:ring-white/40 transition-all"
+            ></div>
+          </a>
+
+          <a
+            href="#demo"
+            class="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-slate-300 transition-all duration-200 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-white focus:outline-none"
+          >
+            Try Live Demo
+          </a>
+
+          <!-- Mobile Only Signup -->
+          <a
+            href="http://127.0.0.1:8000/signup/"
+            class="sm:hidden inline-flex items-center justify-center px-8 py-3.5 w-full text-base font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"
+          >
+            Sign Up Now
+          </a>
+        </div>
+
+        <!-- Hero Image / Dashboard Mockup -->
+        <div
+          class="mt-20 relative animate-fade-in-up"
+          style="animation-delay: 0.5s"
+        >
+          <div
+            class="absolute -inset-1 bg-gradient-to-r from-teal-500 to-purple-600 rounded-2xl blur opacity-30"
+          ></div>
+          <div
+            class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-dark-800"
+          >
+            <img
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop"
+              alt="Dashboard Analytics"
+              class="w-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-700"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent"
+            ></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Features Section -->
     <section id="features" class="py-24 bg-dark-900 relative">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Beyond Simple Keywords</h2>
-                <p class="text-slate-400 max-w-2xl mx-auto">Traditional bots force users into rigid decision trees. Mira uses semantic search and LLMs to understand the *meaning* behind the question.</p>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="glass p-8 rounded-2xl hover:bg-white/5 transition-colors duration-300 group">
-                    <div class="w-12 h-12 bg-teal-500/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fa-solid fa-book-open text-teal-400 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-white mb-3">Instant Ingestion</h3>
-                    <p class="text-slate-400 leading-relaxed">
-                        Point Mira to your URL, upload PDFs, or sync your Notion. Within minutes, it builds a comprehensive knowledge graph of your entire organization.
-                    </p>
-                </div>
-
-                <!-- Feature 2 -->
-                <div class="glass p-8 rounded-2xl hover:bg-white/5 transition-colors duration-300 group">
-                    <div class="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fa-solid fa-brain text-purple-400 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-white mb-3">Intent Recognition</h3>
-                    <p class="text-slate-400 leading-relaxed">
-                        Mira distinguishes between "How do I upgrade?" (Support) and "Is enterprise right for me?" (Sales), routing or answering accordingly.
-                    </p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div class="glass p-8 rounded-2xl hover:bg-white/5 transition-colors duration-300 group">
-                    <div class="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fa-solid fa-users-gear text-blue-400 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-white mb-3">Smart Deflection</h3>
-                    <p class="text-slate-400 leading-relaxed">
-                        It knows its limits. If a query is too complex or emotional, Mira seamlessly hands off the conversation to the right human agent with full context.
-                    </p>
-                </div>
-            </div>
+      <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-20">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+            Beyond Simple Keywords
+          </h2>
+          <p class="text-slate-400 max-w-2xl mx-auto">
+            Traditional bots force users into rigid decision trees. Mira uses
+            semantic search and LLMs to understand the *meaning* behind the
+            question.
+          </p>
         </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <!-- Feature 1 -->
+          <div
+            class="glass p-8 rounded-2xl hover:bg-white/5 transition-colors duration-300 group"
+          >
+            <div
+              class="w-12 h-12 bg-teal-500/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300"
+            >
+              <i class="fa-solid fa-book-open text-teal-400 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-3">
+              Instant Ingestion
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Point Mira to your URL, upload PDFs, or sync your Notion. Within
+              minutes, it builds a comprehensive knowledge graph of your entire
+              organization.
+            </p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div
+            class="glass p-8 rounded-2xl hover:bg-white/5 transition-colors duration-300 group"
+          >
+            <div
+              class="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300"
+            >
+              <i class="fa-solid fa-brain text-purple-400 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-3">
+              Intent Recognition
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Mira distinguishes between "How do I upgrade?" (Support) and "Is
+              enterprise right for me?" (Sales), routing or answering
+              accordingly.
+            </p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div
+            class="glass p-8 rounded-2xl hover:bg-white/5 transition-colors duration-300 group"
+          >
+            <div
+              class="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300"
+            >
+              <i class="fa-solid fa-users-gear text-blue-400 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-3">
+              Smart Deflection
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              It knows its limits. If a query is too complex or emotional, Mira
+              seamlessly hands off the conversation to the right human agent
+              with full context.
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Interactive Demo Section -->
     <section id="demo" class="py-24 relative overflow-hidden">
-        <!-- Decoration -->
-        <div class="absolute inset-0 bg-dark-800/50 skew-y-3 transform origin-bottom-left -z-10"></div>
+      <!-- Decoration -->
+      <div
+        class="absolute inset-0 bg-dark-800/50 skew-y-3 transform origin-bottom-left -z-10"
+      ></div>
 
-        <div class="max-w-6xl mx-auto px-6 lg:px-8">
-            <div class="grid lg:grid-cols-2 gap-16 items-center">
-                <!-- Left Content -->
-                <div>
-                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">See Mira in Action</h2>
-                    <p class="text-slate-400 text-lg mb-8 leading-relaxed">
-                        This isn't a pre-scripted demo. The chat window on the right is a live instance. Try asking about our pricing, or how to integrate with Slack.
+      <div class="max-w-6xl mx-auto px-6 lg:px-8">
+        <div class="grid lg:grid-cols-2 gap-16 items-center">
+          <!-- Left Content -->
+          <div>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">
+              See Mira in Action
+            </h2>
+            <p class="text-slate-400 text-lg mb-8 leading-relaxed">
+              This isn't a pre-scripted demo. The chat window on the right is a
+              live instance. Try asking about our pricing, or how to integrate
+              with Slack.
+            </p>
+
+            <ul class="space-y-4 mb-8">
+              <li class="flex items-center text-slate-300">
+                <i class="fa-solid fa-check-circle text-teal-500 mr-3"></i>
+                Trained on our public docs
+              </li>
+              <li class="flex items-center text-slate-300">
+                <i class="fa-solid fa-check-circle text-teal-500 mr-3"></i>
+                Responses in under 200ms
+              </li>
+              <li class="flex items-center text-slate-300">
+                <i class="fa-solid fa-check-circle text-teal-500 mr-3"></i>
+                Context-aware follow-ups
+              </li>
+            </ul>
+
+            <a
+              href="http://127.0.0.1:8000/signup/"
+              class="text-teal-400 font-semibold hover:text-teal-300 transition-colors inline-flex items-center"
+            >
+              Build your own agent <i class="fa-solid fa-arrow-right ml-2"></i>
+            </a>
+          </div>
+
+          <!-- Right Chat UI -->
+          <div class="relative">
+            <div
+              class="absolute -inset-1 bg-gradient-to-br from-teal-500 to-purple-600 rounded-2xl blur opacity-20"
+            ></div>
+            <div
+              class="bg-dark-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px]"
+            >
+              <!-- Chat Header -->
+              <div
+                class="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-blue-500 p-[2px]"
+                  >
+                    <img
+                      src="https://ui-avatars.com/api/?name=Mira+AI&background=0D9488&color=fff"
+                      alt="Mira"
+                      class="rounded-full bg-dark-900"
+                    />
+                  </div>
+                  <div>
+                    <h4 class="text-white font-medium text-sm">Mira AI</h4>
+                    <p class="text-xs text-teal-400 flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                      Online
                     </p>
-                    
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-center text-slate-300">
-                            <i class="fa-solid fa-check-circle text-teal-500 mr-3"></i> Trained on our public docs
-                        </li>
-                        <li class="flex items-center text-slate-300">
-                            <i class="fa-solid fa-check-circle text-teal-500 mr-3"></i> Responses in under 200ms
-                        </li>
-                        <li class="flex items-center text-slate-300">
-                            <i class="fa-solid fa-check-circle text-teal-500 mr-3"></i> Context-aware follow-ups
-                        </li>
-                    </ul>
-
-                    <a href="http://127.0.0.1:8000/signup/" class="text-teal-400 font-semibold hover:text-teal-300 transition-colors inline-flex items-center">
-                        Build your own agent <i class="fa-solid fa-arrow-right ml-2"></i>
-                    </a>
+                  </div>
                 </div>
+                <button class="text-gray-400 hover:text-white">
+                  <i class="fa-solid fa-ellipsis"></i>
+                </button>
+              </div>
 
-                <!-- Right Chat UI -->
+              <!-- Chat Messages -->
+              <div
+                id="chat-history"
+                class="flex-1 p-4 overflow-y-auto space-y-4 bg-dark-800/50"
+              >
+                <!-- Bot Intro -->
+                <div class="flex gap-3">
+                  <div
+                    class="w-8 h-8 rounded-full bg-teal-600 flex-shrink-0 flex items-center justify-center text-xs text-white"
+                  >
+                    AI
+                  </div>
+                  <div
+                    class="bg-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-slate-200 max-w-[85%]"
+                  >
+                    Hi there! 👋 I'm Mira. I've read all the documentation for
+                    this website. Ask me anything!
+                  </div>
+                </div>
+              </div>
+
+              <!-- Input Area -->
+              <div class="p-4 bg-dark-900 border-t border-white/5">
                 <div class="relative">
-                    <div class="absolute -inset-1 bg-gradient-to-br from-teal-500 to-purple-600 rounded-2xl blur opacity-20"></div>
-                    <div class="bg-dark-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px]">
-                        <!-- Chat Header -->
-                        <div class="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-blue-500 p-[2px]">
-                                    <img src="https://ui-avatars.com/api/?name=Mira+AI&background=0D9488&color=fff" alt="Mira" class="rounded-full bg-dark-900">
-                                </div>
-                                <div>
-                                    <h4 class="text-white font-medium text-sm">Mira AI</h4>
-                                    <p class="text-xs text-teal-400 flex items-center gap-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span> Online
-                                    </p>
-                                </div>
-                            </div>
-                            <button class="text-gray-400 hover:text-white"><i class="fa-solid fa-ellipsis"></i></button>
-                        </div>
-
-                        <!-- Chat Messages -->
-                        <div id="chat-history" class="flex-1 p-4 overflow-y-auto space-y-4 bg-dark-800/50">
-                            <!-- Bot Intro -->
-                            <div class="flex gap-3">
-                                <div class="w-8 h-8 rounded-full bg-teal-600 flex-shrink-0 flex items-center justify-center text-xs text-white">AI</div>
-                                <div class="bg-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-slate-200 max-w-[85%]">
-                                    Hi there! 👋 I'm Mira. I've read all the documentation for this website. Ask me anything!
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Input Area -->
-                        <div class="p-4 bg-dark-900 border-t border-white/5">
-                            <div class="relative">
-                                <input 
-                                    type="text" 
-                                    id="user-input"
-                                    class="w-full bg-dark-800 border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
-                                    placeholder="Type your question..."
-                                >
-                                <button onclick="handleSend()" class="absolute right-2 top-1.5 p-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors">
-                                    <i class="fa-solid fa-arrow-up text-sm"></i>
-                                </button>
-                            </div>
-                            <div class="text-center mt-2">
-                                <p class="text-[10px] text-slate-600">Powered by Mira LLM Engine</p>
-                            </div>
-                        </div>
-                    </div>
+                  <input
+                    type="text"
+                    id="user-input"
+                    class="w-full bg-dark-800 border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
+                    placeholder="Type your question..."
+                  />
+                  <button
+                    onclick="handleSend()"
+                    class="absolute right-2 top-1.5 p-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                  >
+                    <i class="fa-solid fa-arrow-up text-sm"></i>
+                  </button>
                 </div>
+                <div class="text-center mt-2">
+                  <p class="text-[10px] text-slate-600">
+                    Powered by Mira LLM Engine
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- FAQ Section -->
     <section id="faq" class="py-24 bg-dark-900">
-        <div class="max-w-3xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
-                <p class="text-slate-400">Everything you need to know about setting up Mira.</p>
-            </div>
-
-            <div class="space-y-4">
-                <!-- FAQ Item 1 -->
-                <div class="glass rounded-xl overflow-hidden border border-white/5">
-                    <button class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none" aria-expanded="false">
-                        <span class="text-white font-medium">How long does it take to train Mira?</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 accordion-icon"></i>
-                    </button>
-                    <div class="accordion-content bg-white/5">
-                        <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
-                            It takes just minutes. Once you provide your website URL or upload your documents, Mira begins indexing immediately. Most agents are ready to go live within 10-15 minutes depending on the size of your data.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ Item 2 -->
-                <div class="glass rounded-xl overflow-hidden border border-white/5">
-                    <button class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none" aria-expanded="false">
-                        <span class="text-white font-medium">Can I customize the look and feel?</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 accordion-icon"></i>
-                    </button>
-                    <div class="accordion-content bg-white/5">
-                        <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
-                            Absolutely. You can customize the widget colors, avatar, opening greeting, and even the tone of voice (e.g., professional, friendly, or technical) to match your brand identity.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ Item 3 -->
-                <div class="glass rounded-xl overflow-hidden border border-white/5">
-                    <button class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none" aria-expanded="false">
-                        <span class="text-white font-medium">What happens if Mira doesn't know the answer?</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 accordion-icon"></i>
-                    </button>
-                    <div class="accordion-content bg-white/5">
-                        <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
-                            We believe in "No hallucinations". If the confidence score is low, Mira is programmed to gracefully admit it doesn't know and offer to connect the user with a human agent via email or live chat handoff.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ Item 4 -->
-                <div class="glass rounded-xl overflow-hidden border border-white/5">
-                    <button class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none" aria-expanded="false">
-                        <span class="text-white font-medium">Is my data secure?</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 accordion-icon"></i>
-                    </button>
-                    <div class="accordion-content bg-white/5">
-                        <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
-                            Security is our priority. Your data is encrypted at rest and in transit. We isolate data per tenant, meaning your data is never used to train models for other customers.
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="max-w-3xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-white mb-4">
+            Frequently Asked Questions
+          </h2>
+          <p class="text-slate-400">
+            Everything you need to know about setting up Mira.
+          </p>
         </div>
+
+        <div class="space-y-4">
+          <!-- FAQ Item 1 -->
+          <div class="glass rounded-xl overflow-hidden border border-white/5">
+            <button
+              class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none"
+              aria-expanded="false"
+            >
+              <span class="text-white font-medium"
+                >How long does it take to train Mira?</span
+              >
+              <i
+                class="fa-solid fa-chevron-down text-slate-400 accordion-icon"
+              ></i>
+            </button>
+            <div class="accordion-content bg-white/5">
+              <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
+                It takes just minutes. Once you provide your website URL or
+                upload your documents, Mira begins indexing immediately. Most
+                agents are ready to go live within 10-15 minutes depending on
+                the size of your data.
+              </div>
+            </div>
+          </div>
+
+          <!-- FAQ Item 2 -->
+          <div class="glass rounded-xl overflow-hidden border border-white/5">
+            <button
+              class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none"
+              aria-expanded="false"
+            >
+              <span class="text-white font-medium"
+                >Can I customize the look and feel?</span
+              >
+              <i
+                class="fa-solid fa-chevron-down text-slate-400 accordion-icon"
+              ></i>
+            </button>
+            <div class="accordion-content bg-white/5">
+              <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
+                Absolutely. You can customize the widget colors, avatar, opening
+                greeting, and even the tone of voice (e.g., professional,
+                friendly, or technical) to match your brand identity.
+              </div>
+            </div>
+          </div>
+
+          <!-- FAQ Item 3 -->
+          <div class="glass rounded-xl overflow-hidden border border-white/5">
+            <button
+              class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none"
+              aria-expanded="false"
+            >
+              <span class="text-white font-medium"
+                >What happens if Mira doesn't know the answer?</span
+              >
+              <i
+                class="fa-solid fa-chevron-down text-slate-400 accordion-icon"
+              ></i>
+            </button>
+            <div class="accordion-content bg-white/5">
+              <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
+                We believe in "No hallucinations". If the confidence score is
+                low, Mira is programmed to gracefully admit it doesn't know and
+                offer to connect the user with a human agent via email or live
+                chat handoff.
+              </div>
+            </div>
+          </div>
+
+          <!-- FAQ Item 4 -->
+          <div class="glass rounded-xl overflow-hidden border border-white/5">
+            <button
+              class="accordion-btn w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none"
+              aria-expanded="false"
+            >
+              <span class="text-white font-medium">Is my data secure?</span>
+              <i
+                class="fa-solid fa-chevron-down text-slate-400 accordion-icon"
+              ></i>
+            </button>
+            <div class="accordion-content bg-white/5">
+              <div class="px-6 pb-4 text-slate-400 text-sm leading-relaxed">
+                Security is our priority. Your data is encrypted at rest and in
+                transit. We isolate data per tenant, meaning your data is never
+                used to train models for other customers.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- CTA Footer -->
-    <section class="py-20 bg-gradient-to-b from-dark-900 to-black text-center border-t border-white/10">
-        <div class="max-w-4xl mx-auto px-6">
-            <h2 class="text-3xl md:text-5xl font-bold text-white mb-6">Ready to upgrade your support?</h2>
-            <p class="text-slate-400 mb-10 text-lg">Join 500+ companies using Mira to delight customers and reduce ticket volume.</p>
-            <a href="http://127.0.0.1:8000/signup/" class="inline-block bg-white text-dark-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                Start your free trial
-            </a>
-            <p class="mt-4 text-sm text-slate-500">No credit card required · 14-day free trial</p>
-        </div>
+    <section
+      class="py-20 bg-gradient-to-b from-dark-900 to-black text-center border-t border-white/10"
+    >
+      <div class="max-w-4xl mx-auto px-6">
+        <h2 class="text-3xl md:text-5xl font-bold text-white mb-6">
+          Ready to upgrade your support?
+        </h2>
+        <p class="text-slate-400 mb-10 text-lg">
+          Join 500+ companies using Mira to delight customers and reduce ticket
+          volume.
+        </p>
+        <a
+          href="http://127.0.0.1:8000/signup/"
+          class="inline-block bg-white text-dark-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+        >
+          Start your free trial
+        </a>
+        <p class="mt-4 text-sm text-slate-500">
+          No credit card required · 14-day free trial
+        </p>
+      </div>
     </section>
 
     <!-- Footer -->
     <footer class="bg-black py-12 border-t border-white/10">
-        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="text-white font-bold text-xl tracking-tight">Mira</div>
-            <div class="text-slate-500 text-sm">
-                &copy; 2024 Mira AI Inc. All rights reserved.
-            </div>
-            <div class="flex gap-6">
-                <a href="#" class="text-slate-500 hover:text-white transition-colors"><i class="fa-brands fa-twitter"></i></a>
-                <a href="#" class="text-slate-500 hover:text-white transition-colors"><i class="fa-brands fa-github"></i></a>
-                <a href="#" class="text-slate-500 hover:text-white transition-colors"><i class="fa-brands fa-linkedin"></i></a>
-            </div>
+      <div
+        class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6"
+      >
+        <div class="text-white font-bold text-xl tracking-tight">Mira</div>
+        <div class="text-slate-500 text-sm">
+          &copy; 2024 Mira AI Inc. All rights reserved.
         </div>
+        <div class="flex gap-6">
+          <a href="#" class="text-slate-500 hover:text-white transition-colors"
+            ><i class="fa-brands fa-twitter"></i
+          ></a>
+          <a href="#" class="text-slate-500 hover:text-white transition-colors"
+            ><i class="fa-brands fa-github"></i
+          ></a>
+          <a href="#" class="text-slate-500 hover:text-white transition-colors"
+            ><i class="fa-brands fa-linkedin"></i
+          ></a>
+        </div>
+      </div>
     </footer>
 
     <script>
-        // --- FAQ Accordion Logic ---
-        const accordions = document.querySelectorAll('.accordion-btn');
-        
-        accordions.forEach(acc => {
-            acc.addEventListener('click', function() {
-                // Toggle current
-                const content = this.nextElementSibling;
-                const isExpanded = this.getAttribute('aria-expanded') === 'true';
-                
-                // Close all others
-                accordions.forEach(otherAcc => {
-                    if (otherAcc !== this) {
-                        otherAcc.setAttribute('aria-expanded', 'false');
-                        otherAcc.nextElementSibling.classList.remove('active');
-                    }
-                });
+      // --- FAQ Accordion Logic ---
+      const accordions = document.querySelectorAll(".accordion-btn");
 
-                // Toggle state
-                this.setAttribute('aria-expanded', !isExpanded);
-                content.classList.toggle('active');
-            });
-        });
+      accordions.forEach((acc) => {
+        acc.addEventListener("click", function () {
+          // Toggle current
+          const content = this.nextElementSibling;
+          const isExpanded = this.getAttribute("aria-expanded") === "true";
 
-        // --- Chat Demo Logic ---
-        const chatHistory = document.getElementById('chat-history');
-        const userInput = document.getElementById('user-input');
-
-        userInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                handleSend();
+          // Close all others
+          accordions.forEach((otherAcc) => {
+            if (otherAcc !== this) {
+              otherAcc.setAttribute("aria-expanded", "false");
+              otherAcc.nextElementSibling.classList.remove("active");
             }
+          });
+
+          // Toggle state
+          this.setAttribute("aria-expanded", !isExpanded);
+          content.classList.toggle("active");
+        });
+      });
+
+      // --- Chat Demo Logic (1 message gate + KB answers + safe rendering) ---
+      const chatHistory = document.getElementById("chat-history");
+      const userInput = document.getElementById("user-input");
+
+      const MAX_DEMO_MESSAGES = 1;
+      const DEMO_COUNT_KEY = "mira_demo_message_count";
+      const DEMO_LAST_MSG_KEY = "mira_demo_last_message";
+      const DEMO_LANDING_QS_KEY = "mira_demo_landing_qs";
+
+      const UTM_KEYS = [
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_content",
+        "utm_term",
+      ];
+      let isBotThinking = false;
+
+      // ---------- UTM helpers ----------
+      function currentUTMParams() {
+        const cur = new URLSearchParams(window.location.search || "");
+        const out = new URLSearchParams();
+        for (const k of UTM_KEYS) {
+          const v = cur.get(k);
+          if (v) out.set(k, v);
+        }
+        return out;
+      }
+
+      function signupUrlWithUTM() {
+        const params = currentUTMParams();
+        const qs = params.toString();
+        return "/signup/" + (qs ? `?${qs}` : "");
+      }
+
+      function whatsappUrlWithContext() {
+        // Keep it simple: include UTMs in the prefilled message (optional but useful)
+        const utm = currentUTMParams().toString();
+        const msg = `Hi! I tried the Mira live demo and want to learn more.${
+          utm ? ` UTM: ${utm}` : ""
+        }`;
+        return `https://wa.me/7008425781?text=${encodeURIComponent(msg)}`;
+      }
+
+      function redirectToSignup() {
+        sessionStorage.setItem(
+          DEMO_LANDING_QS_KEY,
+          window.location.search || ""
+        );
+        window.location.href = signupUrlWithUTM();
+      }
+
+      // ---------- Demo count ----------
+      function getDemoCount() {
+        const v = parseInt(sessionStorage.getItem(DEMO_COUNT_KEY) || "0", 10);
+        return Number.isFinite(v) ? v : 0;
+      }
+      function setDemoCount(v) {
+        sessionStorage.setItem(DEMO_COUNT_KEY, String(v));
+      }
+
+      // ---------- Safe DOM message rendering (prevents XSS) ----------
+      function createBubble({ side = "left", label = "AI", text = "" }) {
+        const row = document.createElement("div");
+        row.className =
+          side === "right"
+            ? "flex gap-3 flex-row-reverse animate-fade-in-up"
+            : "flex gap-3 animate-fade-in-up";
+        row.style.animationDuration = "0.3s";
+
+        const avatar = document.createElement("div");
+        avatar.className =
+          side === "right"
+            ? "w-8 h-8 rounded-full bg-purple-600 flex-shrink-0 flex items-center justify-center text-xs text-white"
+            : "w-8 h-8 rounded-full bg-teal-600 flex-shrink-0 flex items-center justify-center text-xs text-white";
+        avatar.textContent = label;
+
+        const bubble = document.createElement("div");
+        bubble.className =
+          side === "right"
+            ? "bg-purple-600 p-3 rounded-2xl rounded-tr-none text-sm text-white max-w-[85%]"
+            : "bg-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-slate-200 max-w-[85%] shadow-sm border border-white/5";
+
+        // critical: textContent, not innerHTML
+        bubble.textContent = text;
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        chatHistory.appendChild(row);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+
+        return bubble; // return bubble if we want to append buttons safely
+      }
+
+      function appendBotWithButtons(text, buttons) {
+        const bubble = createBubble({ side: "left", label: "AI", text });
+
+        const wrap = document.createElement("div");
+        wrap.className = "mt-3 flex flex-wrap gap-2";
+
+        buttons.forEach((btn) => {
+          const a = document.createElement("a");
+          a.className = btn.className;
+          a.href = btn.href;
+          a.target = btn.target || "_self";
+          if (a.target === "_blank") a.rel = "noopener noreferrer";
+          a.textContent = btn.text;
+          wrap.appendChild(a);
         });
 
-        function handleSend() {
-            const text = userInput.value.trim();
-            if (!text) return;
+        bubble.appendChild(wrap);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
 
-            // User Message
-            const userDiv = document.createElement('div');
-            userDiv.className = "flex gap-3 flex-row-reverse animate-fade-in-up";
-            userDiv.style.animationDuration = "0.3s";
-            userDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-purple-600 flex-shrink-0 flex items-center justify-center text-xs text-white">You</div>
-                <div class="bg-purple-600 p-3 rounded-2xl rounded-tr-none text-sm text-white max-w-[85%]">
-                    ${text}
-                </div>
-            `;
-            chatHistory.appendChild(userDiv);
-            userInput.value = '';
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+      function showTypingIndicator() {
+        const id = "typing-indicator";
+        if (document.getElementById(id)) return;
 
-            // Bot Response Simulation
-            showTypingIndicator();
+        const row = document.createElement("div");
+        row.id = id;
+        row.className = "flex gap-3 animate-pulse";
 
-            setTimeout(() => {
-                removeTypingIndicator();
-                
-                // Simple logic for demo
-                let response = "I can definitely help with that. Could you provide a bit more detail?";
-                const lowerText = text.toLowerCase();
-                
-                if(lowerText.includes("pricing") || lowerText.includes("cost")) {
-                    response = "Our pricing starts at $49/mo for the Starter plan. It includes 1,000 conversations and standard email support. Would you like to see the full comparison table?";
-                } else if (lowerText.includes("integrate") || lowerText.includes("slack")) {
-                    response = "Yes! We have a native 1-click integration with Slack, Microsoft Teams, and Zendesk. You can set it up in your Settings dashboard under 'Integrations'.";
-                } else if (lowerText.includes("security") || lowerText.includes("safe")) {
-                    response = "We represent SOC2 Type II compliance and all data is encrypted at rest. We do not use your data to train public models.";
-                }
+        const avatar = document.createElement("div");
+        avatar.className =
+          "w-8 h-8 rounded-full bg-teal-600 flex-shrink-0 flex items-center justify-center text-xs text-white";
+        avatar.textContent = "AI";
 
-                const botDiv = document.createElement('div');
-                botDiv.className = "flex gap-3 animate-fade-in-up";
-                botDiv.style.animationDuration = "0.3s";
-                botDiv.innerHTML = `
-                    <div class="w-8 h-8 rounded-full bg-teal-600 flex-shrink-0 flex items-center justify-center text-xs text-white">AI</div>
-                    <div class="bg-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-slate-200 max-w-[85%] shadow-sm border border-white/5">
-                        ${response}
-                    </div>
-                `;
-                chatHistory.appendChild(botDiv);
-                chatHistory.scrollTop = chatHistory.scrollHeight;
+        const bubble = document.createElement("div");
+        bubble.className =
+          "bg-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-slate-400 flex items-center gap-1 border border-white/5";
 
-            }, 1200);
+        for (let i = 0; i < 3; i++) {
+          const dot = document.createElement("span");
+          dot.className =
+            "w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce";
+          dot.style.animationDelay = `${i * 0.1}s`;
+          bubble.appendChild(dot);
         }
 
-        function showTypingIndicator() {
-            const id = 'typing-indicator';
-            const div = document.createElement('div');
-            div.id = id;
-            div.className = "flex gap-3 animate-pulse";
-            div.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-teal-600 flex-shrink-0 flex items-center justify-center text-xs text-white">AI</div>
-                <div class="bg-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-slate-400 flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
-                    <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
-                    <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
-                </div>
-            `;
-            chatHistory.appendChild(div);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        chatHistory.appendChild(row);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
+
+      function removeTypingIndicator() {
+        const el = document.getElementById("typing-indicator");
+        if (el) el.remove();
+      }
+
+      // ---------- Mini “knowledge base” (Dotswitch CX + Mira) ----------
+      // Keep answers short and landing-page friendly. Expand later.
+      const KB = [
+        {
+          id: "mira_what",
+          patterns: [/what is mira/i, /about mira/i, /mira do/i],
+          keywords: [
+            "mira",
+            "chatbot",
+            "agent",
+            "support",
+            "docs",
+            "knowledge",
+            "embed",
+            "widget",
+            "analytics",
+          ],
+          answer:
+            "Mira is a DIY website chatbot that learns from your docs/pages and answers customer questions instantly. You can brand it, connect your knowledge, embed it on your site, and track analytics.",
+        },
+        {
+          id: "mira_setup",
+          patterns: [/set up/i, /install/i, /embed/i, /deploy/i, /integrat/i],
+          keywords: [
+            "setup",
+            "embed",
+            "deploy",
+            "install",
+            "script",
+            "widget",
+            "website",
+          ],
+          answer:
+            "Setup is simple: sign up → add your knowledge sources (pages/docs) → customize branding → copy-paste the widget snippet into your website → go live.",
+        },
+        {
+          id: "mira_pricing",
+          patterns: [/pricing/i, /cost/i, /price/i],
+          keywords: ["pricing", "cost", "plan", "trial"],
+          answer:
+            "We’re currently onboarding early users. Sign up and we’ll share the right plan based on your volume and channels.",
+        },
+        {
+          id: "dotswitch_what",
+          patterns: [/what is dotswitch/i, /dotswitch cx/i, /about dotswitch/i],
+          keywords: [
+            "dotswitch",
+            "cx",
+            "consulting",
+            "agency",
+            "growth",
+            "ai",
+            "automation",
+          ],
+          answer:
+            "Dotswitch CX is a boutique growth + AI-CX studio. We help teams improve customer journeys using better workflows, automation, and AI-powered support—especially for D2C and SaaS.",
+        },
+        {
+          id: "dotswitch_services",
+          patterns: [/services/i, /what do you do/i, /help with/i],
+          keywords: [
+            "services",
+            "seo",
+            "content",
+            "automation",
+            "agents",
+            "chatbots",
+            "analytics",
+            "gtm",
+          ],
+          answer:
+            "We typically help with: CX workflows, AI agents/chatbots, automation, content/SEO systems, and analytics—so teams ship faster and support scales without chaos.",
+        },
+        {
+          id: "security",
+          patterns: [/security/i, /data/i, /safe/i, /privacy/i],
+          keywords: ["security", "privacy", "data", "encryption"],
+          answer:
+            "Security-first by design: you control what knowledge is connected, and the bot should answer only from that approved knowledge. For anything sensitive, we recommend strict access controls and redaction.",
+        },
+      ];
+
+      function normalize(text) {
+        return (text || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function scoreKB(entry, userText) {
+        const t = normalize(userText);
+        if (!t) return 0;
+
+        let score = 0;
+        if (entry.patterns?.some((rx) => rx.test(userText))) score += 4;
+
+        const words = new Set(t.split(" "));
+        for (const kw of entry.keywords || []) {
+          if (words.has(kw.toLowerCase())) score += 1;
+        }
+        return score;
+      }
+
+      function answerFromKB(userText) {
+        let best = null;
+        let bestScore = 0;
+
+        for (const entry of KB) {
+          const s = scoreKB(entry, userText);
+          if (s > bestScore) {
+            bestScore = s;
+            best = entry;
+          }
         }
 
-        function removeTypingIndicator() {
-            const indicator = document.getElementById('typing-indicator');
-            if(indicator) indicator.remove();
+        // threshold: tune freely
+        if (best && bestScore >= 3) return best.answer;
+        return null;
+      }
+
+      function outOfScopeResponse() {
+        appendBotWithButtons(
+          "Sorry — I don’t have enough context for that from our public info. If you share your use-case, we’ll help you quickly:",
+          [
+            {
+              text: "WhatsApp us",
+              href: whatsappUrlWithContext(),
+              target: "_blank",
+              className:
+                "px-3 py-2 rounded-full text-sm font-semibold bg-teal-600 hover:bg-teal-500 text-white transition-colors",
+            },
+            {
+              text: "Sign up",
+              href: signupUrlWithUTM(),
+              className:
+                "px-3 py-2 rounded-full text-sm font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors",
+            },
+          ]
+        );
+      }
+
+      function showSignupNudge() {
+        appendBotWithButtons(
+          "Want to ask more questions? Sign up to continue.",
+          [
+            {
+              text: "Sign up",
+              href: signupUrlWithUTM(),
+              className:
+                "px-3 py-2 rounded-full text-sm font-semibold bg-teal-600 hover:bg-teal-500 text-white transition-colors",
+            },
+            {
+              text: "WhatsApp",
+              href: whatsappUrlWithContext(),
+              target: "_blank",
+              className:
+                "px-3 py-2 rounded-full text-sm font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors",
+            },
+          ]
+        );
+        userInput.placeholder = "Sign up to continue…";
+      }
+
+      userInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") handleSend();
+      });
+
+      function handleSend() {
+        if (isBotThinking) return;
+
+        const demoCount = getDemoCount();
+        if (demoCount >= MAX_DEMO_MESSAGES) {
+          redirectToSignup();
+          return;
         }
+
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        sessionStorage.setItem(DEMO_LAST_MSG_KEY, text);
+
+        // consume the free message now
+        setDemoCount(demoCount + 1);
+
+        // render user message safely
+        createBubble({ side: "right", label: "You", text });
+        userInput.value = "";
+
+        // “AI” response
+        isBotThinking = true;
+        showTypingIndicator();
+
+        setTimeout(() => {
+          removeTypingIndicator();
+
+          const kbAnswer = answerFromKB(text);
+          if (kbAnswer) {
+            createBubble({ side: "left", label: "AI", text: kbAnswer });
+          } else {
+            outOfScopeResponse(); // includes buttons
+          }
+
+          showSignupNudge();
+          isBotThinking = false;
+        }, 700);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        if (getDemoCount() >= MAX_DEMO_MESSAGES) {
+          userInput.placeholder = "Sign up to continue…";
+        }
+      });
     </script>
-</body>
+    <script>
+      // Preserve current UTMs on all links that go to /signup/
+      document.addEventListener("DOMContentLoaded", () => {
+        const UTM_KEYS = [
+          "utm_source",
+          "utm_medium",
+          "utm_campaign",
+          "utm_content",
+          "utm_term",
+        ];
+        const cur = new URLSearchParams(window.location.search || "");
+
+        function addMissingUTM(urlObj) {
+          for (const k of UTM_KEYS) {
+            const v = cur.get(k);
+            if (v && !urlObj.searchParams.get(k)) urlObj.searchParams.set(k, v);
+          }
+        }
+
+        document.querySelectorAll("a[href]").forEach((a) => {
+          const raw = a.getAttribute("href");
+          if (
+            !raw ||
+            raw.startsWith("#") ||
+            raw.startsWith("mailto:") ||
+            raw.startsWith("tel:")
+          )
+            return;
+
+          try {
+            const url = new URL(raw, window.location.origin);
+
+            // Only patch signup links (including hardcoded http://127.0.0.1:8000/signup/)
+            if (
+              url.pathname === "/signup/" ||
+              url.pathname.startsWith("/signup")
+            ) {
+              addMissingUTM(url);
+
+              // Keep it relative if it’s same-origin
+              if (url.origin === window.location.origin) {
+                a.setAttribute(
+                  "href",
+                  url.pathname +
+                    (url.search ? url.search : "") +
+                    (url.hash || "")
+                );
+              } else {
+                a.setAttribute("href", url.toString());
+              }
+            }
+          } catch (e) {
+            // ignore invalid URLs
+          }
+        });
+      });
+    </script>
+  </body>
 </html>
