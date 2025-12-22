@@ -56,3 +56,9 @@ def edit_profile(request):
         form = ProfileUpdateForm(instance=profile, user=request.user)
 
     return render(request, "accounts/edit_profile.html", {"form": form})
+
+@login_required
+def data_sources(request):
+    log_pageview(request, path="/data-sources/")
+    selected = request.GET.get("type", "")
+    return render(request, "accounts/data_sources.html", {"selected": selected})

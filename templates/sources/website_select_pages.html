@@ -1,0 +1,101 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Select Pages{% endblock %}
+
+{% block content %}
+<div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Select pages</h1>
+      <div class="text-sm text-slate-400 mt-1">
+        <span class="text-slate-300 font-semibold">{{ src.name }}</span> • {{ src.domain_url }}
+      </div>
+      <div class="text-xs text-slate-500 mt-1">
+        Selected: <span class="text-teal-300 font-semibold">{{ selected_count }}</span> /
+        Total: {{ src.total_pages }}
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <button name="action" value="get_info"
+        class="px-5 py-3 rounded-full bg-teal-600 hover:bg-teal-500 text-white font-semibold transition">
+        Get Info
+      </button>
+    </form>
+  </div>
+
+  {% if messages %}
+    <div class="mt-4 space-y-2">
+      {% for m in messages %}
+        <div class="bg-white/5 border border-white/10 text-slate-200 rounded-xl p-3 text-sm">{{ m }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Filters -->
+  <form method="get" class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <input name="q" value="{{ q }}" placeholder="Search URL..."
+      class="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white" />
+
+    <select name="cat" class="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white">
+      <option value="">All categories</option>
+      <option value="blog" {% if cat == "blog" %}selected{% endif %}>Blog</option>
+      <option value="product" {% if cat == "product" %}selected{% endif %}>Product</option>
+      <option value="info" {% if cat == "info" %}selected{% endif %}>Info</option>
+    </select>
+
+    <button class="rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 px-4 py-3 text-white font-semibold transition">
+      Apply
+    </button>
+  </form>
+
+  <!-- Bulk selection actions -->
+  <div class="mt-4 flex flex-wrap gap-2">
+    <form method="post">{% csrf_token %}<button name="action" value="select_all" class="px-4 py-2 rounded-full bg-white/10 border border-white/10">Select all</button></form>
+    <form method="post">{% csrf_token %}<button name="action" value="clear_all" class="px-4 py-2 rounded-full bg-white/10 border border-white/10">Clear all</button></form>
+    <form method="post">{% csrf_token %}<button name="action" value="select_filtered" class="px-4 py-2 rounded-full bg-white/10 border border-white/10">Select filtered</button></form>
+    <form method="post">{% csrf_token %}<button name="action" value="clear_filtered" class="px-4 py-2 rounded-full bg-white/10 border border-white/10">Clear filtered</button></form>
+  </div>
+
+  <!-- Page list -->
+  <form method="post" class="mt-6">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_page">
+    <input type="hidden" name="displayed_ids" value="{% for p in page_obj.object_list %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+
+    <div class="border border-white/10 rounded-2xl overflow-hidden">
+      <div class="bg-white/5 px-4 py-3 text-sm text-slate-300 flex justify-between">
+        <span>Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+        <button class="text-teal-300 hover:text-teal-200 font-semibold">Save selection</button>
+      </div>
+
+      <div class="divide-y divide-white/10">
+        {% for p in page_obj.object_list %}
+          <label class="flex items-start gap-3 px-4 py-3 hover:bg-white/5">
+            <input type="checkbox" name="page_ids" value="{{ p.id }}" {% if p.selected %}checked{% endif %} class="mt-1">
+            <div class="min-w-0">
+              <div class="text-xs text-slate-400">{{ p.category|title }}</div>
+              <div class="text-sm text-white truncate">{{ p.url }}</div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+  </form>
+
+  <!-- Pagination -->
+  <div class="mt-5 flex items-center justify-between text-sm">
+    <div class="text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+    <div class="flex gap-2">
+      {% if page_obj.has_previous %}
+        <a class="px-3 py-2 rounded-lg bg-white/10 border border-white/10"
+           href="?q={{ q }}&cat={{ cat }}&page={{ page_obj.previous_page_number }}">Prev</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a class="px-3 py-2 rounded-lg bg-white/10 border border-white/10"
+           href="?q={{ q }}&cat={{ cat }}&page={{ page_obj.next_page_number }}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -24,6 +24,7 @@ urlpatterns = [
     path("superadmin/", superadmin_site.urls),
     path("", include("accounts.urls")),
     path("", include("landing.urls")),
+    path("", include("sources.urls")),
 ]
 
 if settings.DEBUG:

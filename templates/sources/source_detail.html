@@ -1,0 +1,74 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Source{% endblock %}
+
+{% block content %}
+<div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-white">{{ src.name }}</h1>
+      <div class="text-sm text-slate-400 mt-1">{{ src.domain_url }}</div>
+      <div class="text-xs text-slate-500 mt-1">Status: <span class="text-slate-200" id="status">{{ src.status|title }}</span></div>
+    </div>
+    <a href="/sources/" class="text-sm text-slate-400 hover:text-white">← Back</a>
+  </div>
+
+  <div class="mt-5">
+    <div class="flex justify-between text-xs text-slate-400 mb-2">
+      <span>Progress</span>
+      <span><span id="done">{{ src.processed_pages }}</span>/<span id="total">{{ src.selected_pages }}</span></span>
+    </div>
+    <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+      <div id="bar" class="h-2 bg-teal-500" style="width:0%"></div>
+    </div>
+    <div id="err" class="hidden mt-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm"></div>
+  </div>
+
+  <div class="mt-8 border border-white/10 rounded-2xl overflow-hidden">
+    <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">Pages & summaries</div>
+    <div class="divide-y divide-white/10">
+      {% for p in pages %}
+      <div class="px-4 py-4">
+        <div class="text-xs text-slate-400">{{ p.category|title }} • {{ p.status|title }}</div>
+        <div class="text-sm text-white break-all">{{ p.url }}</div>
+        {% if p.summary %}
+          <p class="mt-2 text-sm text-slate-300">{{ p.summary }}</p>
+        {% elif p.status == "failed" %}
+          <p class="mt-2 text-sm text-red-300">{{ p.error }}</p>
+        {% else %}
+          <p class="mt-2 text-sm text-slate-500">Summary not ready yet…</p>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="px-4 py-6 text-slate-400">No pages.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  function pct(done, total){ return total ? Math.min(100, Math.round((done/total)*100)) : 0; }
+
+  async function poll(){
+    const res = await fetch("/sources/{{ src.id }}/progress/");
+    const data = await res.json();
+
+    document.getElementById("status").textContent = (data.status || "").toUpperCase();
+    document.getElementById("done").textContent = data.processed || 0;
+    document.getElementById("total").textContent = data.total || 0;
+
+    const width = pct(data.processed, data.total);
+    document.getElementById("bar").style.width = width + "%";
+
+    const err = document.getElementById("err");
+    if (data.status === "failed" && data.error){
+      err.classList.remove("hidden");
+      err.textContent = data.error;
+    }
+
+    if (data.status === "running" || data.status === "pending"){
+      setTimeout(poll, 2000);
+    }
+  }
+  poll();
+</script>
+{% endblock %}

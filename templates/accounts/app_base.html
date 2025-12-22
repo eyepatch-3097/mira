@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Mira{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+  <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    brand: {
+                        500: '#14b8a6', // Teal primary
+                        600: '#0d9488',
+                    },
+                    dark: {
+                        900: '#0f172a', // Slate 900
+                        800: '#1e293b', // Slate 800
+                        700: '#334155',
+                    }
+                },
+                animation: {
+                    'blob': 'blob 7s infinite',
+                    'fadeIn': 'fadeIn 0.5s ease-out',
+                },
+                keyframes: {
+                    blob: {
+                        '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                        '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                        '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                        '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                    },
+                    fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(10px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    }
+                }
+            }
+        }
+    }
+  </script>
+
+  <style>
+    /* Glassmorphism Card */
+    .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Navigation Link Styles */
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Active State Logic */
+    .nav-link.active {
+        background-color: rgba(20, 184, 166, 0.1); /* brand-500/10 */
+        border-color: rgba(20, 184, 166, 0.3); /* brand-500/30 */
+    }
+    
+    .nav-link.active .icon-box {
+        color: #14b8a6; /* brand-500 */
+        background-color: rgba(20, 184, 166, 0.2);
+    }
+
+    .nav-link.active .link-title {
+        color: white;
+    }
+
+    /* Icon Box styling */
+    .icon-box {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #94a3b8; /* slate-400 */
+        transition: all 0.2s;
+    }
+
+    .nav-link:hover .icon-box {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+  </style>
+</head>
+
+<body class="bg-dark-900 text-slate-300 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white overflow-x-hidden">
+
+  <!-- Ambient Background Glows -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+      <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
+      <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-teal-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-8 lg:py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fadeIn">
+
+      <!-- Sidebar -->
+      <aside class="lg:col-span-4 lg:sticky lg:top-8 h-fit">
+        <div class="glass rounded-2xl p-6 shadow-xl">
+          
+          <!-- User Profile Summary -->
+          <div class="flex items-center gap-4 mb-8 pb-8 border-b border-white/10">
+            {% if request.user.profile.avatar %}
+              <img src="{{ request.user.profile.avatar.url }}" class="w-14 h-14 rounded-full object-cover border-2 border-brand-500/30 p-0.5 bg-dark-800" alt="avatar">
+            {% else %}
+              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center font-bold text-white text-xl shadow-lg border border-white/10">
+                {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+              </div>
+            {% endif %}
+            <div class="min-w-0">
+              <div class="font-semibold text-white truncate text-lg">
+                {{ request.user.first_name|default:request.user.username }} {{ request.user.last_name }}
+              </div>
+              <div class="text-sm text-slate-400 truncate flex items-center gap-1.5">
+                <i class="fa-regular fa-envelope text-xs"></i> {{ request.user.email }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation Links -->
+          <div class="space-y-2">
+            
+            <!-- Dashboard -->
+            <a href="/dashboard/" 
+               class="nav-link group {% if request.path == '/dashboard/' %}active{% endif %}">
+              <div class="icon-box">
+                <i class="fa-solid fa-chart-pie"></i>
+              </div>
+              <div>
+                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Dashboard</div>
+                <div class="text-xs text-slate-500">Overview & insights</div>
+              </div>
+            </a>
+
+            <!-- Add Data Sources -->
+            <a href="/data-sources/"
+               class="nav-link group {% if request.path|slice:':13' == '/data-sources' %}active{% endif %}">
+               <div class="icon-box">
+                <i class="fa-solid fa-database"></i>
+              </div>
+              <div>
+                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Add Data Sources</div>
+                <div class="text-xs text-slate-500">Websites, docs, sheets</div>
+              </div>
+            </a>
+
+            <a href="/sources/"
+               class="nav-link group {% if request.path|slice:':8' == '/sources' %}active{% endif %}">
+               <div class="icon-box">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+              <div>
+                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Source History</div>
+                <div class="text-xs text-slate-500">AI Summarized Source History</div>
+              </div>
+            </a>
+
+            <!-- Edit Profile -->
+            <a href="/profile/edit/"
+               class="nav-link group {% if request.path|slice:':13' == '/profile/edit' %}active{% endif %}">
+               <div class="icon-box">
+                <i class="fa-solid fa-user-pen"></i>
+              </div>
+              <div>
+                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Edit Profile</div>
+                <div class="text-xs text-slate-500">Avatar, company info</div>
+              </div>
+            </a>
+
+            <!-- Create Agent (Disabled) -->
+            <button disabled
+               class="w-full nav-link opacity-50 cursor-not-allowed hover:bg-transparent hover:border-transparent">
+               <div class="icon-box bg-white/5 text-slate-600">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <div class="text-left">
+                <div class="font-semibold text-slate-500">Create Agent</div>
+                <div class="text-xs text-brand-500/70 font-medium">Coming soon</div>
+              </div>
+            </button>
+
+            <!-- Logout -->
+            <div class="pt-4 mt-4 border-t border-white/5">
+                <a href="/logout/" class="nav-link group hover:bg-red-500/10 hover:border-red-500/20">
+                    <div class="icon-box group-hover:text-red-400 group-hover:bg-red-500/20">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </div>
+                    <div class="font-semibold text-slate-400 group-hover:text-red-300 transition-colors">Logout</div>
+                </a>
+            </div>
+
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="lg:col-span-8">
+        {% block content %}{% endblock %}
+      </main>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,218 +1,40 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mira — Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+{% extends "accounts/app_base.html" %}
 
-  <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['Inter', 'sans-serif'],
-                },
-                colors: {
-                    brand: {
-                        500: '#14b8a6', // Teal primary
-                        600: '#0d9488',
-                    },
-                    dark: {
-                        900: '#0f172a', // Slate 900
-                        800: '#1e293b', // Slate 800
-                        700: '#334155',
-                    }
-                },
-                animation: {
-                    'blob': 'blob 7s infinite',
-                    'fadeIn': 'fadeIn 0.5s ease-out',
-                },
-                keyframes: {
-                    blob: {
-                        '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                        '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                        '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                        '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                    },
-                    fadeIn: {
-                        '0%': { opacity: '0', transform: 'translateY(10px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
-                    }
-                }
-            }
-        }
-    }
-  </script>
+{% block title %}Mira — Dashboard{% endblock %}
 
-  <style>
-    /* Glassmorphism Card */
-    .glass {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    .glass-inner {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-  </style>
-</head>
-<body class="bg-dark-900 text-slate-300 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white overflow-x-hidden">
+{% block content %}
+  <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+    <h1 class="text-2xl font-bold text-white">
+      Hey, {{ request.user.first_name|default:request.user.username }} 👋
+    </h1>
 
-  <!-- Ambient Background Glows -->
-  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-      <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
-      <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-teal-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
-  </div>
-
-  <!-- Navigation Bar (Simple Version) -->
-  <nav class="border-b border-white/5 bg-dark-900/50 backdrop-blur-md sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between h-16">
-              <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">M</div>
-                  <span class="text-white text-xl font-semibold tracking-tight">Mira</span>
-              </div>
-              <div class="flex items-center gap-4">
-                  <span class="text-xs text-brand-500 border border-brand-500/20 bg-brand-500/10 px-2 py-1 rounded-full">Beta Access</span>
-              </div>
-          </div>
+    <div class="mt-3 text-sm text-slate-300 space-y-1">
+      <div><span class="text-slate-400">User ID:</span>
+        <code class="text-teal-300">{{ request.user.profile.public_id }}</code>
       </div>
-  </nav>
+      {% if request.user.profile.company_name %}
+        <div><span class="text-slate-400">Company:</span> {{ request.user.profile.company_name }}</div>
+      {% endif %}
+    </div>
 
-  <div class="max-w-7xl mx-auto px-4 py-10">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fadeIn">
+    <div class="mt-8 bg-white/5 border border-white/10 rounded-2xl p-5">
+      <div class="flex items-center justify-between">
+        <div class="text-lg font-semibold text-white">Insights</div>
+        <div class="text-xs text-slate-400">Not populated yet</div>
+      </div>
 
-      <!-- Sidebar -->
-      <aside class="lg:col-span-4 space-y-6">
-        <div class="glass rounded-2xl p-6 shadow-xl">
-          <div class="flex items-center gap-4 mb-6">
-            {% if request.user.profile.avatar %}
-              <img src="{{ request.user.profile.avatar.url }}" class="w-16 h-16 rounded-full object-cover border-2 border-brand-500/50 p-1 bg-dark-800" alt="avatar">
-            {% else %}
-              <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center font-bold text-white text-2xl shadow-lg border-2 border-white/10">
-                {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
-              </div>
-            {% endif %}
-            <div class="min-w-0 flex-1">
-              <div class="font-bold text-white text-lg truncate">
-                {{ request.user.first_name|default:request.user.username }} {{ request.user.last_name }}
-              </div>
-              <div class="text-sm text-slate-400 truncate flex items-center gap-1">
-                  <i class="fa-regular fa-envelope text-xs"></i> {{ request.user.email }}
-              </div>
-            </div>
-          </div>
+      <p class="mt-3 text-sm text-slate-400">
+        Add data sources and create agents to begin. Once you’re live, you’ll see sessions and top questions here.
+      </p>
 
-          <a href="/profile/edit/"
-             class="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white px-4 py-3 text-sm font-semibold transition-all duration-200 shadow-lg shadow-brand-500/20 transform active:scale-[0.98]">
-             <i class="fa-solid fa-pen-to-square"></i> Edit Profile
-          </a>
-
-          <div class="mt-8 pt-6 border-t border-white/10 space-y-3">
-             <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Quick Actions</div>
-            
-            <button disabled
-              class="group w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-left opacity-60 cursor-not-allowed hover:bg-white/10 transition-colors flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
-                  <i class="fa-solid fa-database"></i>
-              </div>
-              <div>
-                  <div class="font-medium text-white text-sm">Add Data Source</div>
-                  <div class="text-[10px] text-slate-400">URLs, PDFs, Notion</div>
-              </div>
-            </button>
-
-            <button disabled
-              class="group w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-left opacity-60 cursor-not-allowed hover:bg-white/10 transition-colors flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
-                  <i class="fa-solid fa-robot"></i>
-              </div>
-              <div>
-                  <div class="font-medium text-white text-sm">Create Agent</div>
-                  <div class="text-[10px] text-slate-400">Tone, scope, behavior</div>
-              </div>
-            </button>
-          </div>
-          
-          <div class="mt-6 pt-4 border-t border-white/5">
-              <a href="/logout/" class="flex items-center gap-2 text-sm text-slate-400 hover:text-red-400 transition-colors px-2 py-2 rounded-lg hover:bg-white/5">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-              </a>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Main -->
-      <main class="lg:col-span-8 space-y-6">
-        <!-- Welcome Card -->
-        <div class="glass rounded-2xl p-8 relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-6 opacity-10">
-                <i class="fa-solid fa-chart-line text-8xl text-brand-500"></i>
-            </div>
-            
-            <h1 class="text-3xl font-bold text-white mb-2">
-                Hey, {{ request.user.first_name|default:request.user.username }} 👋
-            </h1>
-            <p class="text-slate-400 mb-6 max-w-lg">Welcome to your command center. Manage your AI agents and monitor their performance here.</p>
-
-            <div class="flex flex-wrap gap-3 text-sm">
-                <div class="glass-inner px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2">
-                    <span class="text-slate-500">User ID:</span> 
-                    <code class="text-brand-500 font-mono bg-brand-500/10 px-1 rounded">{{ request.user.profile.public_id }}</code>
-                </div>
-                {% if request.user.profile.company_name %}
-                <div class="glass-inner px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2">
-                    <span class="text-slate-500">Company:</span> 
-                    <span class="font-medium text-white">{{ request.user.profile.company_name }}</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Insights / Empty State -->
-        <div class="glass rounded-2xl p-8 border border-white/10">
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                      <i class="fa-solid fa-lightbulb"></i>
-                  </div>
-                  <div class="text-lg font-semibold text-white">Insights</div>
-              </div>
-              <div class="text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
-                  Needs Setup
-              </div>
-            </div>
-
-            <div class="glass-inner rounded-xl p-8 text-center border-dashed border-2 border-slate-700/50">
-                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
-                    <i class="fa-solid fa-chart-simple text-2xl"></i>
-                </div>
-                <h3 class="text-white font-medium mb-2">No data available yet</h3>
-                <p class="text-sm text-slate-400 max-w-md mx-auto leading-relaxed mb-6">
-                    Add data sources and create agents to begin. Once you’re live, you’ll see sessions, intent splits, deflection rates, and top questions here.
-                </p>
-
-                <div class="flex flex-wrap justify-center gap-4">
-                  <button disabled class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-600/20 border border-brand-500/20 text-brand-400 opacity-50 cursor-not-allowed hover:bg-brand-600/30 transition-colors">
-                    <i class="fa-solid fa-plus"></i> Add Data Sources
-                  </button>
-                  <button disabled class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 opacity-50 cursor-not-allowed hover:bg-indigo-600/30 transition-colors">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Create Agent
-                  </button>
-                </div>
-            </div>
-        </div>
-      </main>
-
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a href="/data-sources/" class="px-4 py-2 rounded-full bg-teal-600 hover:bg-teal-500 text-white font-semibold transition">
+          Add Data Sources
+        </a>
+        <button disabled class="px-4 py-2 rounded-full bg-indigo-600/30 text-white opacity-50 cursor-not-allowed">
+          Create Agent
+        </button>
+      </div>
     </div>
   </div>
-</body>
-</html>
+{% endblock %}

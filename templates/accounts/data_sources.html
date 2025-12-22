@@ -1,0 +1,149 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Add Data Sources{% endblock %}
+
+{% block content %}
+  <div class="glass rounded-2xl p-6 md:p-8 shadow-xl animate-fadeIn">
+    
+    <!-- Header -->
+    <div class="mb-8 border-b border-white/10 pb-6">
+      <h1 class="text-3xl font-bold text-white mb-2">Add Data Sources</h1>
+      <p class="text-slate-400 max-w-2xl">
+        Choose what you want Mira to learn from. Connect your knowledge base to power accurate, context-aware answers.
+      </p>
+    </div>
+
+    <!-- Data Source Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      
+      <!-- Website Card -->
+      <a href="/data-sources/website/new/{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}"
+         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
+         {% if selected == 'website' %}
+           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
+         {% else %}
+           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
+         {% endif %}">
+         
+         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <i class="fa-solid fa-globe text-6xl {% if selected == 'website' %}text-brand-500{% else %}text-white{% endif %}"></i>
+         </div>
+
+         <div class="relative z-10 flex flex-col h-full justify-between">
+           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
+             {% if selected == 'website' %}bg-brand-500 text-white{% else %}bg-white/10 text-brand-400{% endif %}">
+             <i class="fa-solid fa-globe text-xl"></i>
+           </div>
+           <div>
+             <div class="text-white font-semibold text-lg mb-1">Website</div>
+             <div class="text-sm text-slate-400">Crawl domains & sitemaps</div>
+           </div>
+         </div>
+      </a>
+
+      <!-- Documents Card -->
+      <a href="?type=document"
+         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
+         {% if selected == 'document' %}
+           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
+         {% else %}
+           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
+         {% endif %}">
+         
+         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <i class="fa-regular fa-file-pdf text-6xl {% if selected == 'document' %}text-brand-500{% else %}text-white{% endif %}"></i>
+         </div>
+
+         <div class="relative z-10 flex flex-col h-full justify-between">
+           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
+             {% if selected == 'document' %}bg-brand-500 text-white{% else %}bg-white/10 text-purple-400{% endif %}">
+             <i class="fa-solid fa-file-lines text-xl"></i>
+           </div>
+           <div>
+             <div class="text-white font-semibold text-lg mb-1">Documents</div>
+             <div class="text-sm text-slate-400">PDFs, DOCX, TXT files</div>
+           </div>
+         </div>
+      </a>
+
+      <!-- Sheets Card -->
+      <a href="?type=sheet"
+         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
+         {% if selected == 'sheet' %}
+           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
+         {% else %}
+           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
+         {% endif %}">
+         
+         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <i class="fa-solid fa-table text-6xl {% if selected == 'sheet' %}text-brand-500{% else %}text-white{% endif %}"></i>
+         </div>
+
+         <div class="relative z-10 flex flex-col h-full justify-between">
+           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
+             {% if selected == 'sheet' %}bg-brand-500 text-white{% else %}bg-white/10 text-green-400{% endif %}">
+             <i class="fa-solid fa-table-cells text-xl"></i>
+           </div>
+           <div>
+             <div class="text-white font-semibold text-lg mb-1">Sheets</div>
+             <div class="text-sm text-slate-400">CSV & Excel spreadsheets</div>
+           </div>
+         </div>
+      </a>
+
+      <!-- Custom Info Card -->
+      <a href="?type=custom"
+         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
+         {% if selected == 'custom' %}
+           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
+         {% else %}
+           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
+         {% endif %}">
+         
+         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <i class="fa-solid fa-align-left text-6xl {% if selected == 'custom' %}text-brand-500{% else %}text-white{% endif %}"></i>
+         </div>
+
+         <div class="relative z-10 flex flex-col h-full justify-between">
+           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
+             {% if selected == 'custom' %}bg-brand-500 text-white{% else %}bg-white/10 text-amber-400{% endif %}">
+             <i class="fa-solid fa-pen-to-square text-xl"></i>
+           </div>
+           <div>
+             <div class="text-white font-semibold text-lg mb-1">Custom Info</div>
+             <div class="text-sm text-slate-400">Paste FAQs, policies, snippets</div>
+           </div>
+         </div>
+      </a>
+    </div>
+
+    <!-- Conditional Action Area -->
+    <div class="bg-dark-800/50 border border-white/5 rounded-2xl p-8 text-center transition-all duration-300">
+      {% if selected %}
+        <div class="animate-fadeIn">
+            <div class="w-16 h-16 bg-brand-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-400">
+                {% if selected == 'website' %}<i class="fa-solid fa-globe text-2xl"></i>{% endif %}
+                {% if selected == 'document' %}<i class="fa-solid fa-file-lines text-2xl"></i>{% endif %}
+                {% if selected == 'sheet' %}<i class="fa-solid fa-table-cells text-2xl"></i>{% endif %}
+                {% if selected == 'custom' %}<i class="fa-solid fa-pen-to-square text-2xl"></i>{% endif %}
+            </div>
+            
+            <h2 class="text-xl font-bold text-white mb-2">Configure {{ selected|title }} Source</h2>
+            <p class="text-slate-400 max-w-md mx-auto mb-6">
+              You've selected <strong>{{ selected|title }}</strong>. The specific configuration form for this data type will appear here.
+            </p>
+
+            <!-- Placeholder Button for UI completeness -->
+            <button class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-full shadow-lg shadow-brand-500/20 transition-all">
+                Continue Setup <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+      {% else %}
+        <div class="text-slate-500 py-4">
+            <i class="fa-solid fa-arrow-up text-2xl mb-3 block opacity-50"></i>
+            <span class="font-medium">Select a data source type above to begin configuration.</span>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+{% endblock %}

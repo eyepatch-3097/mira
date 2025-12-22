@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'internal_admin',
     'landing',
     'accounts.apps.AccountsConfig',
+    'sources',
 ]
 
 MIDDLEWARE = [
