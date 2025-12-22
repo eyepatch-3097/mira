@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mira — Edit Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+  <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    brand: {
+                        500: '#14b8a6', // Teal primary
+                        600: '#0d9488',
+                    },
+                    dark: {
+                        900: '#0f172a', // Slate 900
+                        800: '#1e293b', // Slate 800
+                        700: '#334155',
+                    }
+                },
+                animation: {
+                    'blob': 'blob 7s infinite',
+                    'fadeIn': 'fadeIn 0.5s ease-out',
+                },
+                keyframes: {
+                    blob: {
+                        '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                        '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                        '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                        '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                    },
+                    fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(10px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    }
+                }
+            }
+        }
+    }
+  </script>
+
+  <style>
+    /* Glassmorphism Card */
+    .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .glass-inner {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Form Input Styling */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+        background-color: #1e293b; /* dark-800 */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem; /* rounded-xl */
+        padding: 0.75rem 1rem;
+        color: white;
+        width: 100%;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+        border-color: #14b8a6; /* brand-500 */
+        box-shadow: 0 0 0 1px #14b8a6;
+    }
+
+    /* File Input Styling */
+    input[type="file"] {
+        color: #94a3b8; /* slate-400 */
+        font-size: 0.875rem;
+    }
+    input[type="file"]::file-selector-button {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-right: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    input[type="file"]::file-selector-button:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+  </style>
+</head>
+<body class="bg-dark-900 text-slate-300 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white overflow-x-hidden">
+
+  <!-- Ambient Background Glows -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+      <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
+      <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-teal-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
+  </div>
+
+  <!-- Navigation Bar (Simple Version) -->
+  <nav class="border-b border-white/5 bg-dark-900/50 backdrop-blur-md sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-16">
+              <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">M</div>
+                  <span class="text-white text-xl font-semibold tracking-tight">Mira</span>
+              </div>
+              <a href="/dashboard/" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+              </a>
+          </div>
+      </div>
+  </nav>
+
+  <div class="max-w-4xl mx-auto px-4 py-10 animate-fadeIn">
+    <div class="glass rounded-2xl p-6 md:p-10 shadow-xl border border-white/10">
+      
+      <div class="mb-8 border-b border-white/10 pb-6">
+        <h1 class="text-3xl font-bold text-white mb-2">Edit Profile</h1>
+        <p class="text-slate-400">Update your personal details and company information.</p>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="space-y-8">
+        {% csrf_token %}
+
+        <!-- Global form errors -->
+        {% if form.non_field_errors %}
+          <div class="bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-4 text-sm flex items-start gap-3">
+            <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+            <div>{{ form.non_field_errors }}</div>
+          </div>
+        {% endif %}
+
+        <!-- Avatar Section -->
+        <div class="glass-inner rounded-2xl p-6">
+          <div class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <i class="fa-regular fa-image text-brand-500"></i> Profile Picture
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center gap-6">
+            <div class="relative group">
+                {% if request.user.profile.avatar %}
+                  <img src="{{ request.user.profile.avatar.url }}" class="w-24 h-24 rounded-full object-cover border-4 border-dark-800 shadow-lg" alt="avatar">
+                {% else %}
+                  <div class="w-24 h-24 rounded-full bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center font-bold text-white text-3xl border-4 border-dark-800 shadow-lg">
+                    {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+                  </div>
+                {% endif %}
+                <div class="absolute bottom-0 right-0 w-6 h-6 bg-brand-500 rounded-full border-2 border-dark-800 flex items-center justify-center text-white text-xs">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+            </div>
+
+            <div class="flex-1 w-full">
+              {{ form.avatar }}
+              {% if form.avatar.errors %}<div class="text-red-400 text-xs mt-2">{{ form.avatar.errors }}</div>{% endif %}
+              <div class="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                <i class="fa-solid fa-circle-info"></i> PNG or JPG recommended. Max 2MB.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Info -->
+        <div class="space-y-6">
+            <h3 class="text-lg font-semibold text-white border-l-4 border-brand-500 pl-3">Personal Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2" for="{{ form.first_name.id_for_label }}">First Name</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}<div class="text-red-400 text-xs mt-2">{{ form.first_name.errors }}</div>{% endif %}
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2" for="{{ form.last_name.id_for_label }}">Last Name</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}<div class="text-red-400 text-xs mt-2">{{ form.last_name.errors }}</div>{% endif %}
+              </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2" for="{{ form.phone.id_for_label }}">Contact Number</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-phone text-slate-500 text-sm"></i>
+                    </div>
+                    {{ form.phone }} <!-- Add style="padding-left: 2.5rem;" via JS or inline if needed, but flex gap usually handles styling better with wrapper -->
+                </div>
+                {% if form.phone.errors %}<div class="text-red-400 text-xs mt-2">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+        </div>
+
+        <!-- Company Info -->
+        <div class="space-y-6 pt-4">
+            <h3 class="text-lg font-semibold text-white border-l-4 border-purple-500 pl-3">Company Details</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2" for="{{ form.company_name.id_for_label }}">Company Name</label>
+                {{ form.company_name }}
+                {% if form.company_name.errors %}<div class="text-red-400 text-xs mt-2">{{ form.company_name.errors }}</div>{% endif %}
+              </div>
+              
+              <!-- Industry Logic Wrapper -->
+              <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2" for="{{ form.industry.id_for_label }}">Industry</label>
+                    {{ form.industry }}
+                    {% if form.industry.errors %}<div class="text-red-400 text-xs mt-2">{{ form.industry.errors }}</div>{% endif %}
+                  </div>
+
+                  <div id="custom-industry-wrap" class="hidden animate-fadeIn">
+                    <label class="block text-sm font-medium text-slate-300 mb-2" for="{{ form.custom_industry.id_for_label }}">Specify Industry</label>
+                    {{ form.custom_industry }}
+                    {% if form.custom_industry.errors %}<div class="text-red-400 text-xs mt-2">{{ form.custom_industry.errors }}</div>{% endif %}
+                  </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-slate-300" for="{{ form.company_description.id_for_label }}">
+                  Company Description
+                </label>
+                <div class="text-xs text-slate-400 bg-white/5 px-2 py-1 rounded-md">
+                  <span id="word-count" class="font-mono text-brand-500">0</span> / 200 words
+                </div>
+              </div>
+
+              {{ form.company_description }}
+              
+              {% if form.company_description.errors %}<div class="text-red-400 text-xs mt-2">{{ form.company_description.errors }}</div>{% endif %}
+              
+              <div id="word-warning" class="hidden text-xs text-red-400 mt-2 flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                You’ve exceeded 200 words. Please shorten your description.
+              </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col-reverse sm:flex-row gap-4 pt-6 border-t border-white/10">
+          <a href="/dashboard/" class="px-6 py-3 rounded-xl border border-white/10 text-slate-300 font-medium hover:bg-white/5 hover:text-white transition-colors text-center">
+            Cancel
+          </a>
+          <button id="save-btn" type="submit"
+            class="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-semibold shadow-lg shadow-brand-500/20 transition-all transform active:scale-[0.98] flex-1 sm:flex-none flex justify-center items-center gap-2">
+            <i class="fa-solid fa-check"></i> Save Changes
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Industry "Other" toggle
+    const industry = document.getElementById("id_industry");
+    const wrap = document.getElementById("custom-industry-wrap");
+    
+    function toggleCustomIndustry() {
+      if (!industry) return;
+      // Adjust logic based on actual value for "Other" in your Django choices
+      // Assuming value is 'other' or similar. 
+      // If render is text, check logic. Usually it's a value key.
+      wrap.classList.toggle("hidden", industry.value !== "other");
+    }
+    
+    if (industry) {
+      industry.addEventListener("change", toggleCustomIndustry);
+      toggleCustomIndustry(); // Run on load
+    }
+
+    // 200-word counter
+    const textarea = document.getElementById("id_company_description");
+    const countEl = document.getElementById("word-count");
+    const warning = document.getElementById("word-warning");
+    const saveBtn = document.getElementById("save-btn");
+
+    function wordCount(txt) {
+      const words = (txt || "").trim().split(/\s+/).filter(Boolean);
+      return txt.trim() ? words.length : 0;
+    }
+    
+    function updateCounter() {
+      if (!textarea) return;
+      const n = wordCount(textarea.value);
+      countEl.textContent = n;
+      
+      const over = n > 200;
+      warning.classList.toggle("hidden", !over);
+      
+      saveBtn.disabled = over;
+      if(over) {
+          saveBtn.classList.add("opacity-50", "cursor-not-allowed", "grayscale");
+          countEl.classList.add("text-red-400");
+          countEl.classList.remove("text-brand-500");
+      } else {
+          saveBtn.classList.remove("opacity-50", "cursor-not-allowed", "grayscale");
+          countEl.classList.remove("text-red-400");
+          countEl.classList.add("text-brand-500");
+      }
+    }
+    
+    if (textarea) {
+      textarea.addEventListener("input", updateCounter);
+      updateCounter(); // Run on load
+    }
+    
+    // Slight enhancement for phone input if it exists, to add padding for icon
+    const phoneInput = document.getElementById("id_phone");
+    if(phoneInput) {
+        phoneInput.style.paddingLeft = "2.5rem";
+    }
+  </script>
+</body>
+</html>

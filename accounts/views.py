@@ -3,7 +3,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from .forms import SignupForm
+from .forms import SignupForm, ProfileUpdateForm
 from landing.tracking import log_pageview  # we’ll create this in section D
 
 class MiraLoginView(LoginView):
@@ -40,3 +40,19 @@ def signup(request):
 def dashboard(request):
     log_pageview(request, path="/dashboard/")
     return render(request, "accounts/dashboard.html")
+
+@login_required
+def edit_profile(request):
+    log_pageview(request, path="/profile/edit/")
+
+    profile = request.user.profile
+
+    if request.method == "POST":
+        form = ProfileUpdateForm(request.POST, request.FILES, instance=profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect("/dashboard/")
+    else:
+        form = ProfileUpdateForm(instance=profile, user=request.user)
+
+    return render(request, "accounts/edit_profile.html", {"form": form})
