@@ -20,5 +20,6 @@ from internal_admin.admin_site import superadmin_site
 
 urlpatterns = [
     path("superadmin/", superadmin_site.urls),
+    path("", include("accounts.urls")),
     path("", include("landing.urls")),
 ]
