@@ -1,12 +1,14 @@
 {% extends "accounts/app_base.html" %} 
-{% block title %}Mira — Source{% endblock%} 
+{% block title %}Mira — Source{% endblock %} 
 
 {% block content %}
 <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
   <div class="flex items-start justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-white">{{ src.name }}</h1>
-      <div class="text-sm text-slate-400 mt-1">{{ src.domain_url }}</div>
+      <div class="text-sm text-slate-400 mt-1">
+        {% if src.source_type == "website" %} {{ src.domain_url }} {% endif %}
+      </div>
       <div class="text-xs text-slate-500 mt-1">
         Status:
         <span class="text-slate-200" id="status">{{ src.status|title }}</span>
@@ -36,71 +38,112 @@
   </div>
 
   <div class="mt-8 border border-white/10 rounded-2xl overflow-hidden">
-    <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">
-      Pages & summaries
-    </div>
-    <div class="divide-y divide-white/10">
+  <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">
+    {% if src.source_type == "sheet" %}Sheets{% else %}Pages & summaries{% endif %}
+  </div>
+
+  {% if src.source_type == "sheet" %}
+    <!-- Sheets cards + preview table -->
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {% for p in pages %}
-      <div class="px-4 py-4">
-        <div class="text-xs text-slate-400">
-          {{ p.category|title }} • {{ p.status|title }}
-        </div>
-        <div class="text-sm text-white break-all">{{ p.url }}</div>
-
-        <!-- Summary display block (ALWAYS present so JS can find it) -->
-        <div
-          id="summary-display-{{ p.id }}"
-          class="mt-2 text-sm text-slate-300 whitespace-pre-line break-words"
+        <a
+          href="?sheet={{ p.id }}"
+          class="rounded-xl border p-4 transition
+            {% if active and active.id == p.id %}
+              bg-teal-500/10 border-teal-500 ring-1 ring-teal-500
+            {% else %}
+              bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20
+            {% endif %}"
         >
-          {% if p.summary %} {{ p.summary }} {% elif p.status == "failed" %} {{
-          p.error }} {% else %} Summary not ready yet... {% endif %}
-        </div>
-
-        <!-- Editor -->
-        <textarea
-          id="summary-edit-{{ p.id }}"
-          class="hidden w-full mt-2 bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
-          rows="6"
-        >
-{% if p.summary %}{{ p.summary }}{% endif %}</textarea
-        >
-
-        <!-- Actions -->
-        <div class="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            class="edit-btn px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white"
-            data-page-id="{{ p.id }}"
-          >
-            Edit
-          </button>
-
-          <button
-            type="button"
-            class="save-btn hidden px-3 py-1.5 text-xs rounded-lg bg-teal-600 hover:bg-teal-500 text-white"
-            data-page-id="{{ p.id }}"
-          >
-            Save
-          </button>
-
-          <button
-            type="button"
-            class="cancel-btn hidden px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white"
-            data-page-id="{{ p.id }}"
-          >
-            Cancel
-          </button>
-
-          <span
-            id="save-status-{{ p.id }}"
-            class="text-xs text-slate-500"
-          ></span>
-        </div>
-      </div>
+          <div class="text-white font-semibold">{{ p.url }}</div>
+          <div class="text-xs text-slate-400 mt-1">
+            {% if p.preview and p.preview.headers %}
+              {{ p.preview.headers|length }} columns
+            {% else %}
+              preview pending
+            {% endif %}
+          </div>
+        </a>
+      {% empty %}
+        <div class="text-slate-500">No sheets found.</div>
       {% endfor %}
     </div>
-  </div>
+
+    <div class="border-t border-white/10 p-4">
+      <div class="text-sm text-slate-300 font-medium mb-3">
+        Preview{% if active %}: {{ active.url }}{% endif %}
+      </div>
+
+      {% if headers %}
+        <div class="overflow-auto rounded-xl border border-white/10">
+          <table class="min-w-full text-sm">
+            <thead class="bg-white/5 text-slate-200">
+              <tr>
+                {% for h in headers %}
+                  <th class="text-left px-3 py-2 whitespace-nowrap">{{ h }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10 text-slate-300">
+              {% for r in rows %}
+                <tr>
+                  {% for c in r %}
+                    <td class="px-3 py-2 whitespace-nowrap">{{ c }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-slate-500 text-sm">Preview not ready yet…</div>
+      {% endif %}
+    </div>
+
+    <div class="border-t border-white/10 p-4">
+      <div class="text-sm text-slate-300 mb-2">AI Summary</div>
+      <div class="text-sm text-slate-200 whitespace-pre-line">
+        {% if src.summary %}{{ src.summary }}{% else %}Summary not ready yet…{% endif %}
+      </div>
+    </div>
+
+  {% else %}
+    <div class="divide-y divide-white/10">
+      {% for p in pages %}
+        <div class="px-4 py-4">
+          <div class="text-xs text-slate-400">{{ p.category|title }} • {{ p.status|title }}</div>
+          <div class="text-sm text-white break-all">{{ p.url }}</div>
+
+          <div id="summary-display-{{ p.id }}" class="mt-2 text-sm text-slate-300 whitespace-pre-line break-words">
+            {% if p.summary %}
+              {{ p.summary }}
+            {% elif p.status == "failed" %}
+              {{ p.error }}
+            {% else %}
+              Summary not ready yet...
+            {% endif %}
+          </div>
+
+          <textarea id="summary-edit-{{ p.id }}"
+            class="hidden w-full mt-2 bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
+            rows="6">{% if p.summary %}{{ p.summary }}{% endif %}</textarea>
+
+          <div class="mt-2 flex items-center gap-2">
+            <button type="button" class="edit-btn px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white" data-page-id="{{ p.id }}">Edit</button>
+            <button type="button" class="save-btn hidden px-3 py-1.5 text-xs rounded-lg bg-teal-600 hover:bg-teal-500 text-white" data-page-id="{{ p.id }}">Save</button>
+            <button type="button" class="cancel-btn hidden px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white" data-page-id="{{ p.id }}">Cancel</button>
+            <span id="save-status-{{ p.id }}" class="text-xs text-slate-500"></span>
+          </div>
+        </div>
+      {% empty %}
+        <div class="px-4 py-6 text-slate-400">No pages.</div>
+      {% endfor %}
+    </div>
+  {% endif %}
 </div>
+
+  </div>
+
 
 <script>
   function pct(done, total) {
@@ -197,7 +240,7 @@
             "Content-Type": "application/json",
             "X-CSRFToken": csrftoken,
             "X-Requested-With": "XMLHttpRequest",
-            "Accept": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify({ summary: newSummary }),
         });
@@ -207,12 +250,16 @@
         const raw = await resp.text();
 
         if (!contentType.includes("application/json")) {
-          throw new Error(`Non-JSON response (${resp.status}). First chars: ${raw.slice(0, 80)}`);
+          throw new Error(
+            `Non-JSON response (${resp.status}). First chars: ${raw.slice(
+              0,
+              80
+            )}`
+          );
         }
 
         const data = JSON.parse(raw);
 
-        
         if (!resp.ok || !data.ok) {
           throw new Error(data.error || "Failed to save");
         }

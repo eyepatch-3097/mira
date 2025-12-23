@@ -7,13 +7,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
 from landing.tracking import log_pageview
-from .forms import WebsiteSourceCreateForm, DocumentSourceCreateForm
+from .forms import WebsiteSourceCreateForm, DocumentSourceCreateForm, SheetSourceCreateForm
 from .models import DataSource, DataSourcePage
 from .services.url_safety import normalize_domain_url
 from .services.discover import discover_urls
 from .services.categorize import categorize_url
 from .services.documents import extract_text_from_pdf, extract_text_from_docx, extract_urls
+from .services.sheets import preview_xlsx, preview_csv
 import json
+import os
 
 
 @login_required
@@ -28,6 +30,26 @@ def source_detail(request, source_id: int):
     src = get_object_or_404(DataSource, pk=source_id, user=request.user)
     log_pageview(request, path=f"/sources/{source_id}/")
 
+    pages = src.pages.filter(selected=True).order_by("id")
+
+    if src.source_type == "sheet":
+        active_id = request.GET.get("sheet")
+        active = None
+        if active_id and active_id.isdigit():
+            active = pages.filter(id=int(active_id)).first()
+        if not active:
+            active = pages.first()
+
+        preview = (active.preview or {}) if active else {}
+        return render(request, "sources/source_detail.html", {
+            "src": src,
+            "pages": pages,
+            "active": active,
+            "headers": preview.get("headers", []),
+            "rows": preview.get("rows", []),
+        })
+
+    # default (website/document)
     pages = src.pages.filter(selected=True).order_by("category", "url")[:500]
     return render(request, "sources/source_detail.html", {"src": src, "pages": pages})
 
@@ -238,3 +260,74 @@ def document_source_new(request):
         form = DocumentSourceCreateForm()
 
     return render(request, "sources/document_new.html", {"form": form})
+
+@login_required
+def sheet_source_new(request):
+    log_pageview(request, path="/data-sources/sheet/new/")
+
+    if request.method == "POST":
+        form = SheetSourceCreateForm(request.POST, request.FILES)
+        if form.is_valid():
+            name = form.cleaned_data["name"].strip()
+            ctx = (form.cleaned_data["source_context"] or "").strip()
+            f = form.cleaned_data["file"]
+
+            src = DataSource.objects.create(
+                user=request.user,
+                name=name,
+                source_type="sheet",
+                source_context=ctx,
+                status="pending",          # worker will summarize
+                processed_pages=0,
+            )
+            src.file = f
+            src.original_filename = f.name
+            src.save(update_fields=["file", "original_filename"])
+
+            file_path = src.file.path
+            ext = os.path.splitext(src.original_filename.lower())[1]
+
+            pages = []
+            if ext == ".xlsx":
+                sheets = preview_xlsx(file_path, max_rows=10)
+                if not sheets:
+                    src.status = "failed"
+                    src.error_message = "Could not read any sheets from this Excel file."
+                    src.save(update_fields=["status", "error_message"])
+                    messages.error(request, "Could not parse this Excel. Try a CSV instead.")
+                    return redirect("/data-sources/")
+
+                for s in sheets:
+                    pages.append(DataSourcePage(
+                        source=src,
+                        url=s["sheet_name"],       # reuse url column to store sheet name
+                        category="sheet",
+                        selected=True,
+                        status="pending",
+                        preview={"headers": s["headers"], "rows": s["rows"]},
+                    ))
+
+            else:  # .csv
+                prev = preview_csv(file_path, max_rows=10)
+                pages.append(DataSourcePage(
+                    source=src,
+                    url=src.original_filename,
+                    category="csv",
+                    selected=True,
+                    status="pending",
+                    preview=prev,
+                ))
+
+            DataSourcePage.objects.bulk_create(pages)
+
+            src.total_pages = src.pages.count()
+            src.selected_pages = src.pages.filter(selected=True).count()
+            src.save(update_fields=["total_pages", "selected_pages"])
+
+            messages.success(request, "Sheet uploaded. Summarization will appear shortly in Source History.")
+            return redirect(f"/sources/{src.id}/")
+
+    else:
+        form = SheetSourceCreateForm()
+
+    return render(request, "sources/sheet_new.html", {"form": form})

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.contrib.auth.models import User
 
 class DataSource(models.Model):
     TYPE_CHOICES = [
@@ -27,6 +28,8 @@ class DataSource(models.Model):
     total_pages = models.IntegerField(default=0)
     selected_pages = models.IntegerField(default=0)
     processed_pages = models.IntegerField(default=0)
+    source_context = models.TextField(blank=True, default="")
+    summary = models.TextField(blank=True, default="")
 
     file = models.FileField(upload_to="sources/uploads/%Y/%m/", blank=True, null=True)
     original_filename = models.CharField(max_length=255, blank=True)
@@ -60,6 +63,7 @@ class DataSourcePage(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     summary = models.TextField(blank=True)
     error = models.CharField(max_length=300, blank=True)
+    preview = models.JSONField(default=dict, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

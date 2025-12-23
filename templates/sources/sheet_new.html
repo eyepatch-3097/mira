@@ -1,0 +1,63 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Upload Sheet{% endblock %}
+
+{% block content %}
+<div class="glass rounded-2xl p-6 md:p-8 shadow-xl">
+  <div class="flex items-start justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Add Sheet Source</h1>
+      <p class="text-sm text-slate-400 mt-1">
+        Upload a CSV or Excel file (max 50MB). Mira will summarize it and show previews.
+      </p>
+    </div>
+    <a href="/data-sources/" class="text-sm text-slate-400 hover:text-white">← Back</a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-5">
+    {% csrf_token %}
+
+    <div>
+      <label class="block text-sm text-slate-300 mb-2">Source Name</label>
+      {{ form.name }}
+      {% if form.name.errors %}<div class="mt-2 text-sm text-red-300">{{ form.name.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm text-slate-300 mb-2">Source Context (optional)</label>
+      <div class="text-xs text-slate-500 mb-2">What does this sheet represent? (1–2 lines)</div>
+      {{ form.source_context }}
+      {% if form.source_context.errors %}<div class="mt-2 text-sm text-red-300">{{ form.source_context.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm text-slate-300 mb-2">Upload File</label>
+      <div class="text-xs text-slate-500 mb-2">Supported: .xlsx, .csv (max 50MB)</div>
+      {{ form.file }}
+      {% if form.file.errors %}<div class="mt-2 text-sm text-red-300">{{ form.file.errors }}</div>{% endif %}
+    </div>
+
+    <button type="submit"
+      class="w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-3 px-44 rounded-xl transition">
+      Upload & Summarize
+    </button>
+  </form>
+</div>
+
+<style>
+  /* Make Django form widgets match your UI */
+  input[type="text"], textarea, input[type="file"]{
+    width: 100%;
+    background: rgba(15,23,42,0.6);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: white;
+    outline: none;
+  }
+  textarea{ min-height: 110px; }
+  input:focus, textarea:focus{
+    border-color: rgba(20,184,166,1);
+    box-shadow: 0 0 0 1px rgba(20,184,166,1);
+  }
+</style>
+{% endblock %}

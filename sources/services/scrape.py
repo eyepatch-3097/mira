@@ -137,3 +137,32 @@ def summarize_document_with_openai(filename: str, doc_text: str, urls: list[str]
     if not summary:
         raise RuntimeError("OpenAI returned empty output for document summary")
     return summary
+
+def summarize_sheet_source_with_openai(source_name: str, source_context: str, overview_text: str) -> str:
+    client = get_openai_client()
+
+    instructions = (
+        "You summarize a spreadsheet data source for a chatbot knowledge base.\n"
+        "Output exactly 1 short paragraph (2–3 sentences).\n"
+        "Describe what the data source contains (how many sheets/tables), what fields exist, and what it can be used for.\n"
+        "Do not include any personal data values; refer only to column names and structure.\n"
+        "No bullet points, no markdown."
+    )
+
+    input_text = (
+        f"SOURCE NAME: {source_name}\n"
+        f"SOURCE CONTEXT: {source_context}\n\n"
+        f"OVERVIEW:\n{overview_text}"
+    )
+
+    resp = client.responses.create(
+        model=os.getenv("OPENAI_SUMMARY_MODEL", "gpt-5-nano"),
+        instructions=instructions,
+        input=input_text,
+        text={"format": {"type": "text"}},
+    )
+
+    out = _extract_any_text(resp).strip()
+    if not out:
+        raise RuntimeError("OpenAI returned empty output for sheet summary")
+    return out
