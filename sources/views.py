@@ -7,11 +7,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
 from landing.tracking import log_pageview
-from .forms import WebsiteSourceCreateForm
+from .forms import WebsiteSourceCreateForm, DocumentSourceCreateForm
 from .models import DataSource, DataSourcePage
 from .services.url_safety import normalize_domain_url
 from .services.discover import discover_urls
 from .services.categorize import categorize_url
+from .services.documents import extract_text_from_pdf, extract_text_from_docx, extract_urls
 import json
 
 
@@ -200,3 +201,40 @@ def update_page_summary(request, page_id: int):
     page.save(update_fields=["summary", "updated_at"])
 
     return JsonResponse({"ok": True, "summary": page.summary})
+
+@login_required
+def document_source_new(request):
+    log_pageview(request, path="/data-sources/documents/new/")
+
+    if request.method == "POST":
+        form = DocumentSourceCreateForm(request.POST, request.FILES)
+        if form.is_valid():
+            name = form.cleaned_data["name"].strip()
+            f = form.cleaned_data["file"]
+
+            src = DataSource.objects.create(
+                user=request.user,
+                name=name,
+                source_type="document",
+                status="pending",
+                original_filename=f.name,
+                file=f,
+                total_pages=1,
+                selected_pages=1,
+                processed_pages=0,
+            )
+
+            DataSourcePage.objects.create(
+                source=src,
+                url=f.name,
+                category="document",
+                selected=True,
+                status="pending",
+            )
+
+            messages.success(request, "Document uploaded. Summarization job started.")
+            return redirect(f"/sources/{src.id}/")
+    else:
+        form = DocumentSourceCreateForm()
+
+    return render(request, "sources/document_new.html", {"form": form})

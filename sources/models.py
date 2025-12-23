@@ -28,6 +28,9 @@ class DataSource(models.Model):
     selected_pages = models.IntegerField(default=0)
     processed_pages = models.IntegerField(default=0)
 
+    file = models.FileField(upload_to="sources/uploads/%Y/%m/", blank=True, null=True)
+    original_filename = models.CharField(max_length=255, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

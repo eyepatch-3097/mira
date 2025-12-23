@@ -1,0 +1,35 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Upload Document{% endblock %}
+
+{% block content %}
+<div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 max-w-2xl">
+  <h1 class="text-2xl font-bold text-white mb-2">Upload a document</h1>
+  <p class="text-slate-400 mb-6">Upload a PDF or DOCX (max 50MB). Mira will summarize it for your knowledge base.</p>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div>
+      <label class="block text-sm text-slate-300 mb-1">Source name</label>
+      {{ form.name }}
+      {% if form.name.errors %}<div class="text-sm text-red-300 mt-1">{{ form.name.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm text-slate-300 mb-1">File (PDF/DOCX)</label>
+      {{ form.file }}
+      {% if form.file.errors %}<div class="text-sm text-red-300 mt-1">{{ form.file.errors }}</div>{% endif %}
+    </div>
+
+    <button class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold" type="submit">
+      Upload & Summarize
+    </button>
+  </form>
+</div>
+{% endblock %}
