@@ -4,13 +4,16 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
 from landing.tracking import log_pageview
 from .forms import WebsiteSourceCreateForm
 from .models import DataSource, DataSourcePage
 from .services.url_safety import normalize_domain_url
 from .services.discover import discover_urls
 from .services.categorize import categorize_url
+import json
+
 
 @login_required
 def sources_list(request):
@@ -19,11 +22,12 @@ def sources_list(request):
     return render(request, "sources/sources_list.html", {"sources": sources})
 
 @login_required
+@ensure_csrf_cookie
 def source_detail(request, source_id: int):
     src = get_object_or_404(DataSource, pk=source_id, user=request.user)
     log_pageview(request, path=f"/sources/{source_id}/")
 
-    pages = src.pages.order_by("category", "url")[:500]  # cap UI
+    pages = src.pages.filter(selected=True).order_by("category", "url")[:500]
     return render(request, "sources/source_detail.html", {"src": src, "pages": pages})
 
 @login_required
@@ -166,3 +170,33 @@ def website_pages_select(request, source_id: int):
         "selected_count": selected_count,
         "counts": counts,
     })
+
+
+@login_required
+@require_POST
+def update_page_summary(request, page_id: int):
+    """
+    Update summary for a single DataSourcePage owned by the logged-in user.
+    Accepts JSON: { "summary": "..." }
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+
+    summary = (payload.get("summary") or "").strip()
+
+    # Optional limits (recommended)
+    if len(summary) > 6000:
+        return JsonResponse({"ok": False, "error": "Summary too long (max 6000 chars)."}, status=400)
+
+    page = get_object_or_404(
+        DataSourcePage,
+        pk=page_id,
+        source__user=request.user,   # ownership check
+    )
+
+    page.summary = summary
+    page.save(update_fields=["summary", "updated_at"])
+
+    return JsonResponse({"ok": True, "summary": page.summary})

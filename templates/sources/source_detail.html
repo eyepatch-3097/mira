@@ -1,5 +1,5 @@
-{% extends "accounts/app_base.html" %}
-{% block title %}Mira — Source{% endblock %}
+{% extends "accounts/app_base.html" %} 
+{% block title %}Mira — Source{% endblock%} 
 
 {% block content %}
 <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
@@ -7,52 +7,113 @@
     <div>
       <h1 class="text-2xl font-bold text-white">{{ src.name }}</h1>
       <div class="text-sm text-slate-400 mt-1">{{ src.domain_url }}</div>
-      <div class="text-xs text-slate-500 mt-1">Status: <span class="text-slate-200" id="status">{{ src.status|title }}</span></div>
+      <div class="text-xs text-slate-500 mt-1">
+        Status:
+        <span class="text-slate-200" id="status">{{ src.status|title }}</span>
+      </div>
     </div>
-    <a href="/sources/" class="text-sm text-slate-400 hover:text-white">← Back</a>
+    <a href="/sources/" class="text-sm text-slate-400 hover:text-white"
+      >← Back</a
+    >
   </div>
 
   <div class="mt-5">
     <div class="flex justify-between text-xs text-slate-400 mb-2">
       <span>Progress</span>
-      <span><span id="done">{{ src.processed_pages }}</span>/<span id="total">{{ src.selected_pages }}</span></span>
+      <span
+        ><span id="done">{{ src.processed_pages }}</span>/<span id="total"
+          >{{ src.selected_pages }}</span
+        ></span
+      >
     </div>
     <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-      <div id="bar" class="h-2 bg-teal-500" style="width:0%"></div>
+      <div id="bar" class="h-2 bg-teal-500" style="width: 0%"></div>
     </div>
-    <div id="err" class="hidden mt-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm"></div>
+    <div
+      id="err"
+      class="hidden mt-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm"
+    ></div>
   </div>
 
   <div class="mt-8 border border-white/10 rounded-2xl overflow-hidden">
-    <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">Pages & summaries</div>
+    <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">
+      Pages & summaries
+    </div>
     <div class="divide-y divide-white/10">
       {% for p in pages %}
       <div class="px-4 py-4">
-        <div class="text-xs text-slate-400">{{ p.category|title }} • {{ p.status|title }}</div>
+        <div class="text-xs text-slate-400">
+          {{ p.category|title }} • {{ p.status|title }}
+        </div>
         <div class="text-sm text-white break-all">{{ p.url }}</div>
-        {% if p.summary %}
-          <p class="mt-2 text-sm text-slate-300">{{ p.summary }}</p>
-        {% elif p.status == "failed" %}
-          <p class="mt-2 text-sm text-red-300">{{ p.error }}</p>
-        {% else %}
-          <p class="mt-2 text-sm text-slate-500">Summary not ready yet…</p>
-        {% endif %}
+
+        <!-- Summary display block (ALWAYS present so JS can find it) -->
+        <div
+          id="summary-display-{{ p.id }}"
+          class="mt-2 text-sm text-slate-300 whitespace-pre-line break-words"
+        >
+          {% if p.summary %} {{ p.summary }} {% elif p.status == "failed" %} {{
+          p.error }} {% else %} Summary not ready yet... {% endif %}
+        </div>
+
+        <!-- Editor -->
+        <textarea
+          id="summary-edit-{{ p.id }}"
+          class="hidden w-full mt-2 bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
+          rows="6"
+        >
+{% if p.summary %}{{ p.summary }}{% endif %}</textarea
+        >
+
+        <!-- Actions -->
+        <div class="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            class="edit-btn px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white"
+            data-page-id="{{ p.id }}"
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            class="save-btn hidden px-3 py-1.5 text-xs rounded-lg bg-teal-600 hover:bg-teal-500 text-white"
+            data-page-id="{{ p.id }}"
+          >
+            Save
+          </button>
+
+          <button
+            type="button"
+            class="cancel-btn hidden px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white"
+            data-page-id="{{ p.id }}"
+          >
+            Cancel
+          </button>
+
+          <span
+            id="save-status-{{ p.id }}"
+            class="text-xs text-slate-500"
+          ></span>
+        </div>
       </div>
-      {% empty %}
-      <div class="px-4 py-6 text-slate-400">No pages.</div>
       {% endfor %}
     </div>
   </div>
 </div>
 
 <script>
-  function pct(done, total){ return total ? Math.min(100, Math.round((done/total)*100)) : 0; }
+  function pct(done, total) {
+    return total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  }
 
-  async function poll(){
+  async function poll() {
     const res = await fetch("/sources/{{ src.id }}/progress/");
     const data = await res.json();
 
-    document.getElementById("status").textContent = (data.status || "").toUpperCase();
+    document.getElementById("status").textContent = (
+      data.status || ""
+    ).toUpperCase();
     document.getElementById("done").textContent = data.processed || 0;
     document.getElementById("total").textContent = data.total || 0;
 
@@ -60,15 +121,114 @@
     document.getElementById("bar").style.width = width + "%";
 
     const err = document.getElementById("err");
-    if (data.status === "failed" && data.error){
+    if (data.status === "failed" && data.error) {
       err.classList.remove("hidden");
       err.textContent = data.error;
     }
 
-    if (data.status === "running" || data.status === "pending"){
+    if (data.status === "running" || data.status === "pending") {
       setTimeout(poll, 2000);
     }
   }
   poll();
+</script>
+
+<script>
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return "";
+  }
+
+  const csrftoken = getCookie("csrftoken");
+
+  document.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".edit-btn");
+    const saveBtn = e.target.closest(".save-btn");
+    const cancelBtn = e.target.closest(".cancel-btn");
+
+    if (!editBtn && !saveBtn && !cancelBtn) return;
+
+    const pageId = (editBtn || saveBtn || cancelBtn).dataset.pageId;
+    const display = document.getElementById(`summary-display-${pageId}`);
+    const textarea = document.getElementById(`summary-edit-${pageId}`);
+    const statusEl = document.getElementById(`save-status-${pageId}`);
+
+    const row = (editBtn || saveBtn || cancelBtn).parentElement;
+    const edit = row.querySelector(".edit-btn");
+    const save = row.querySelector(".save-btn");
+    const cancel = row.querySelector(".cancel-btn");
+
+    if (editBtn) {
+      textarea.value =
+        display.textContent.trim() === "Summary not ready yet..."
+          ? ""
+          : display.textContent;
+      display.classList.add("hidden");
+      textarea.classList.remove("hidden");
+      edit.classList.add("hidden");
+      save.classList.remove("hidden");
+      cancel.classList.remove("hidden");
+      statusEl.textContent = "";
+      textarea.focus();
+      return;
+    }
+
+    if (cancelBtn) {
+      textarea.classList.add("hidden");
+      display.classList.remove("hidden");
+      edit.classList.remove("hidden");
+      save.classList.add("hidden");
+      cancel.classList.add("hidden");
+      statusEl.textContent = "";
+      return;
+    }
+
+    if (saveBtn) {
+      const newSummary = textarea.value.trim();
+      statusEl.textContent = "Saving...";
+
+      try {
+        const resp = await fetch(`/pages/${pageId}/summary/`, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken,
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({ summary: newSummary }),
+        });
+
+        // Robust parsing (handles 403/302/404 HTML pages cleanly)
+        const contentType = resp.headers.get("content-type") || "";
+        const raw = await resp.text();
+
+        if (!contentType.includes("application/json")) {
+          throw new Error(`Non-JSON response (${resp.status}). First chars: ${raw.slice(0, 80)}`);
+        }
+
+        const data = JSON.parse(raw);
+
+        
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || "Failed to save");
+        }
+
+        display.textContent = data.summary || "Summary not ready yet...";
+        textarea.classList.add("hidden");
+        display.classList.remove("hidden");
+        edit.classList.remove("hidden");
+        save.classList.add("hidden");
+        cancel.classList.add("hidden");
+        statusEl.textContent = "Saved";
+        setTimeout(() => (statusEl.textContent = ""), 1200);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      }
+    }
+  });
 </script>
 {% endblock %}
