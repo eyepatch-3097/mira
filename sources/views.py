@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
 from landing.tracking import log_pageview
-from .forms import WebsiteSourceCreateForm, DocumentSourceCreateForm, SheetSourceCreateForm
+from .forms import WebsiteSourceCreateForm, DocumentSourceCreateForm, SheetSourceCreateForm, CustomSourceCreateForm
 from .models import DataSource, DataSourcePage
 from .services.url_safety import normalize_domain_url
 from .services.discover import discover_urls
@@ -48,6 +48,9 @@ def source_detail(request, source_id: int):
             "headers": preview.get("headers", []),
             "rows": preview.get("rows", []),
         })
+
+    if src.source_type == "custom":
+        return render(request, "sources/source_detail.html", {"src": src, "pages": []})
 
     # default (website/document)
     pages = src.pages.filter(selected=True).order_by("category", "url")[:500]
@@ -331,3 +334,28 @@ def sheet_source_new(request):
         form = SheetSourceCreateForm()
 
     return render(request, "sources/sheet_new.html", {"form": form})
+
+@login_required
+def custom_source_new(request):
+    log_pageview(request, path="/data-sources/custom/new/")
+
+    if request.method == "POST":
+        form = CustomSourceCreateForm(request.POST)
+        if form.is_valid():
+            src = DataSource.objects.create(
+                user=request.user,
+                name=form.cleaned_data["name"].strip(),
+                source_type="custom",
+                custom_text=form.cleaned_data["custom_text"],
+                status="done",              # immediately done (no worker)
+                total_pages=1,
+                selected_pages=1,
+                processed_pages=1,
+                error_message="",
+            )
+            messages.success(request, "Custom source added.")
+            return redirect(f"/sources/{src.id}/")
+    else:
+        form = CustomSourceCreateForm()
+
+    return render(request, "sources/custom_new.html", {"form": form})

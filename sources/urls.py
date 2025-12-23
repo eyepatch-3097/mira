@@ -11,4 +11,5 @@ urlpatterns = [
     path("pages/<int:page_id>/summary/", views.update_page_summary, name="update_page_summary"),
     path("data-sources/documents/new/", views.document_source_new, name="document_source_new"),
     path("data-sources/sheet/new/", views.sheet_source_new, name="sheet_source_new"),
+    path("data-sources/custom/new/", views.custom_source_new, name="custom_source_new"),
 ]

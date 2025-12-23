@@ -33,6 +33,7 @@ class DataSource(models.Model):
 
     file = models.FileField(upload_to="sources/uploads/%Y/%m/", blank=True, null=True)
     original_filename = models.CharField(max_length=255, blank=True)
+    custom_text = models.TextField(blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -49,3 +49,18 @@ class SheetSourceCreateForm(forms.Form):
         if not any(name.endswith(x) for x in allowed):
             raise forms.ValidationError("Only .xlsx and .csv are supported for now.")
         return f
+
+class CustomSourceCreateForm(forms.Form):
+    name = forms.CharField(max_length=120)
+    custom_text = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 10}),
+        required=True,
+        help_text="Up to 2000 words."
+    )
+
+    def clean_custom_text(self):
+        txt = (self.cleaned_data.get("custom_text") or "").strip()
+        words = len(txt.split())
+        if words > 2000:
+            raise forms.ValidationError("Custom info is limited to 2000 words.")
+        return txt

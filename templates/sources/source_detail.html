@@ -42,7 +42,15 @@
     {% if src.source_type == "sheet" %}Sheets{% else %}Pages & summaries{% endif %}
   </div>
 
-  {% if src.source_type == "sheet" %}
+  {% if src.source_type == "custom" %}
+  
+    <div class="p-4">
+      <div class="text-sm text-slate-200 whitespace-pre-line break-words">
+        {{ src.custom_text|default:"No custom text found." }}
+      </div>
+    </div>
+  
+  {% elif src.source_type == "sheet" %}
     <!-- Sheets cards + preview table -->
     <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {% for p in pages %}

@@ -1,0 +1,79 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Add Custom Source{% endblock %}
+
+{% block content %}
+<div class="glass rounded-2xl p-6 md:p-8 shadow-xl animate-fadeIn max-w-3xl">
+  <div class="mb-6 border-b border-white/10 pb-5">
+    <h1 class="text-2xl font-bold text-white">Add Custom Info</h1>
+    <p class="text-slate-400 mt-1">Paste information that isn’t a website, document, or sheet. Max 2000 words.</p>
+  </div>
+
+  <form method="post" class="space-y-5">
+    {% csrf_token %}
+
+    <div>
+      <label class="block text-sm text-slate-300 mb-2">Source Name</label>
+      <input name="name" value="{{ form.name.value|default:'' }}"
+        class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500" />
+      {% if form.name.errors %}
+        <div class="text-sm text-red-300 mt-2">{{ form.name.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <label class="block text-sm text-slate-300">Custom Information</label>
+        <div class="text-xs text-slate-400"><span id="wc">0</span>/2000 words</div>
+      </div>
+
+      <textarea id="custom_text" name="custom_text"
+        class="w-full min-h-[220px] bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500"
+        placeholder="Paste policies, product context, FAQs, internal notes, portfolio instructions…">{{ form.custom_text.value|default:'' }}</textarea>
+
+      {% if form.custom_text.errors %}
+        <div class="text-sm text-red-300 mt-2">{{ form.custom_text.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3">
+      <button id="submitBtn" type="submit"
+        class="px-6 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-full shadow-lg shadow-teal-500/20">
+        Save Source
+      </button>
+
+      <a href="/data-sources/" class="px-6 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-full">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const ta = document.getElementById("custom_text");
+  const wc = document.getElementById("wc");
+  const btn = document.getElementById("submitBtn");
+
+  function countWords(s){
+    s = (s || "").trim();
+    if (!s) return 0;
+    return s.split(/\s+/).length;
+  }
+
+  function update(){
+    const n = countWords(ta.value);
+    wc.textContent = n;
+    if (n > 2000){
+      wc.classList.add("text-red-300");
+      btn.disabled = true;
+      btn.classList.add("opacity-50", "cursor-not-allowed");
+    } else {
+      wc.classList.remove("text-red-300");
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+    }
+  }
+
+  ta.addEventListener("input", update);
+  update();
+</script>
+{% endblock %}
