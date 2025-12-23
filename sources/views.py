@@ -27,35 +27,66 @@ def sources_list(request):
 @login_required
 @ensure_csrf_cookie
 def source_detail(request, source_id: int):
-    src = get_object_or_404(DataSource, pk=source_id, user=request.user)
+    # 1) Fetch source + source-level tags
+    src = get_object_or_404(
+        DataSource.objects.prefetch_related("tags"),
+        pk=source_id,
+        user=request.user,
+    )
     log_pageview(request, path=f"/sources/{source_id}/")
 
-    pages = src.pages.filter(selected=True).order_by("id")
+    # 2) Base queryset for selected pages/items + page-level tags
+    pages_qs = (
+        src.pages.filter(selected=True)
+        .prefetch_related("tags")
+    )
 
+    # 3) Custom sources: no pages, just show custom text + (optional) src.tags
+    if src.source_type == "custom":
+        return render(request, "sources/source_detail.html", {
+            "src": src,
+            "pages": [],
+        })
+
+    # 4) Sheet sources: show sheet cards + preview for the active sheet
     if src.source_type == "sheet":
-        active_id = request.GET.get("sheet")
+        pages = pages_qs.order_by("id")
+
         active = None
-        if active_id and active_id.isdigit():
+        active_id = (request.GET.get("sheet") or "").strip()
+        if active_id.isdigit():
             active = pages.filter(id=int(active_id)).first()
-        if not active:
+        if active is None:
             active = pages.first()
 
         preview = (active.preview or {}) if active else {}
+        headers = preview.get("headers") or []
+        rows = preview.get("rows") or []
+
+        return render(request, "sources/source_detail.html", {
+            "src": src,
+            "pages": pages,     # sheet “cards”
+            "active": active,   # active sheet card
+            "headers": headers,
+            "rows": rows,
+        })
+
+    # 5) Website: show up to 500 selected pages (with per-page tags)
+    if src.source_type == "website":
+        pages = pages_qs.order_by("category", "url")[:500]
         return render(request, "sources/source_detail.html", {
             "src": src,
             "pages": pages,
-            "active": active,
-            "headers": preview.get("headers", []),
-            "rows": preview.get("rows", []),
         })
 
-    if src.source_type == "custom":
-        return render(request, "sources/source_detail.html", {"src": src, "pages": []})
-
-    # default (website/document)
-    pages = src.pages.filter(selected=True).order_by("category", "url")[:500]
-    return render(request, "sources/source_detail.html", {"src": src, "pages": pages})
-
+    # 6) Document (and any other future types that behave like a single-page list)
+    # Document summary is stored in page.summary, tags are stored in src.tags (as you designed)
+    pages = pages_qs.order_by("id")[:500]
+    return render(request, "sources/source_detail.html", {
+        "src": src,
+        "pages": pages,
+    })
+    
 @login_required
 def source_progress(request, source_id: int):
     src = get_object_or_404(DataSource, pk=source_id, user=request.user)

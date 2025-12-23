@@ -1,157 +1,198 @@
-{% extends "accounts/app_base.html" %} 
-{% block title %}Mira — Source{% endblock %} 
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Source{% endblock %}
 
 {% block content %}
 <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
   <div class="flex items-start justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-white">{{ src.name }}</h1>
+
       <div class="text-sm text-slate-400 mt-1">
-        {% if src.source_type == "website" %} {{ src.domain_url }} {% endif %}
+        {% if src.source_type == "website" %}
+          {{ src.domain_url }}
+        {% elif src.original_filename %}
+          {{ src.original_filename }}
+        {% endif %}
       </div>
+
       <div class="text-xs text-slate-500 mt-1">
-        Status:
-        <span class="text-slate-200" id="status">{{ src.status|title }}</span>
+        Status: <span class="text-slate-200" id="status">{{ src.status|title }}</span>
       </div>
+
+      {# ---------- SOURCE TAGS (for non-website sources) ---------- #}
+      {% if src.source_type != "website" %}
+      <div class="mt-3">
+        <div class="text-xs text-slate-400 mb-1">Tags</div>
+        <div class="flex flex-wrap gap-2">
+          {% for t in src.tags.all %}
+            <span class="px-2 py-1 text-xs rounded-full bg-white/10 border border-white/10 text-slate-200">
+              {{ t.name }}
+            </span>
+          {% empty %}
+            <span class="text-xs text-slate-500">No tags yet…</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
-    <a href="/sources/" class="text-sm text-slate-400 hover:text-white"
-      >← Back</a
-    >
+
+    <a href="/sources/" class="text-sm text-slate-400 hover:text-white">← Back</a>
   </div>
 
   <div class="mt-5">
     <div class="flex justify-between text-xs text-slate-400 mb-2">
       <span>Progress</span>
-      <span
-        ><span id="done">{{ src.processed_pages }}</span>/<span id="total"
-          >{{ src.selected_pages }}</span
-        ></span
-      >
+      <span><span id="done">{{ src.processed_pages }}</span>/<span id="total">{{ src.selected_pages }}</span></span>
     </div>
     <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
       <div id="bar" class="h-2 bg-teal-500" style="width: 0%"></div>
     </div>
-    <div
-      id="err"
-      class="hidden mt-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm"
-    ></div>
+    <div id="err" class="hidden mt-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm"></div>
   </div>
 
   <div class="mt-8 border border-white/10 rounded-2xl overflow-hidden">
-  <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">
-    {% if src.source_type == "sheet" %}Sheets{% else %}Pages & summaries{% endif %}
-  </div>
-
-  {% if src.source_type == "custom" %}
-  
-    <div class="p-4">
-      <div class="text-sm text-slate-200 whitespace-pre-line break-words">
-        {{ src.custom_text|default:"No custom text found." }}
-      </div>
-    </div>
-  
-  {% elif src.source_type == "sheet" %}
-    <!-- Sheets cards + preview table -->
-    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {% for p in pages %}
-        <a
-          href="?sheet={{ p.id }}"
-          class="rounded-xl border p-4 transition
-            {% if active and active.id == p.id %}
-              bg-teal-500/10 border-teal-500 ring-1 ring-teal-500
-            {% else %}
-              bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20
-            {% endif %}"
-        >
-          <div class="text-white font-semibold">{{ p.url }}</div>
-          <div class="text-xs text-slate-400 mt-1">
-            {% if p.preview and p.preview.headers %}
-              {{ p.preview.headers|length }} columns
-            {% else %}
-              preview pending
-            {% endif %}
-          </div>
-        </a>
-      {% empty %}
-        <div class="text-slate-500">No sheets found.</div>
-      {% endfor %}
+    <div class="bg-white/5 px-4 py-3 text-sm text-slate-300">
+      {% if src.source_type == "sheet" %}Sheets{% else %}Pages & summaries{% endif %}
     </div>
 
-    <div class="border-t border-white/10 p-4">
-      <div class="text-sm text-slate-300 font-medium mb-3">
-        Preview{% if active %}: {{ active.url }}{% endif %}
+    {# ===================== CUSTOM ===================== #}
+    {% if src.source_type == "custom" %}
+      <div class="p-4">
+        <div class="text-sm text-slate-200 whitespace-pre-line break-words">
+          {{ src.custom_text|default:"No custom text found." }}
+        </div>
       </div>
 
-      {% if headers %}
-        <div class="overflow-auto rounded-xl border border-white/10">
-          <table class="min-w-full text-sm">
-            <thead class="bg-white/5 text-slate-200">
-              <tr>
-                {% for h in headers %}
-                  <th class="text-left px-3 py-2 whitespace-nowrap">{{ h }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/10 text-slate-300">
-              {% for r in rows %}
+    {# ===================== SHEET ===================== #}
+    {% elif src.source_type == "sheet" %}
+      <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {% for p in pages %}
+          <a
+            href="?sheet={{ p.id }}"
+            class="rounded-xl border p-4 transition
+              {% if active and active.id == p.id %}
+                bg-teal-500/10 border-teal-500 ring-1 ring-teal-500
+              {% else %}
+                bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20
+              {% endif %}"
+          >
+            <div class="text-white font-semibold">{{ p.url }}</div>
+
+            <div class="text-xs text-slate-400 mt-1">
+              {% if p.preview and p.preview.headers %}
+                {{ p.preview.headers|length }} columns
+              {% else %}
+                preview pending
+              {% endif %}
+            </div>
+
+            {# Optional: show per-sheet tags if you ever add them #}
+            <div class="mt-2 flex flex-wrap gap-1">
+              {% for t in p.tags.all %}
+                <span class="px-2 py-0.5 text-[11px] rounded-full bg-white/10 border border-white/10 text-slate-200">
+                  {{ t.name }}
+                </span>
+              {% endfor %}
+            </div>
+          </a>
+        {% empty %}
+          <div class="text-slate-500">No sheets found.</div>
+        {% endfor %}
+      </div>
+
+      <div class="border-t border-white/10 p-4">
+        <div class="text-sm text-slate-300 font-medium mb-3">
+          Preview{% if active %}: {{ active.url }}{% endif %}
+        </div>
+
+        {% if headers %}
+          <div class="overflow-auto rounded-xl border border-white/10">
+            <table class="min-w-full text-sm">
+              <thead class="bg-white/5 text-slate-200">
                 <tr>
-                  {% for c in r %}
-                    <td class="px-3 py-2 whitespace-nowrap">{{ c }}</td>
+                  {% for h in headers %}
+                    <th class="text-left px-3 py-2 whitespace-nowrap">{{ h }}</th>
                   {% endfor %}
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="text-slate-500 text-sm">Preview not ready yet…</div>
-      {% endif %}
-    </div>
-
-    <div class="border-t border-white/10 p-4">
-      <div class="text-sm text-slate-300 mb-2">AI Summary</div>
-      <div class="text-sm text-slate-200 whitespace-pre-line">
-        {% if src.summary %}{{ src.summary }}{% else %}Summary not ready yet…{% endif %}
+              </thead>
+              <tbody class="divide-y divide-white/10 text-slate-300">
+                {% for r in rows %}
+                  <tr>
+                    {% for c in r %}
+                      <td class="px-3 py-2 whitespace-nowrap">{{ c }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-slate-500 text-sm">Preview not ready yet…</div>
+        {% endif %}
       </div>
-    </div>
 
-  {% else %}
-    <div class="divide-y divide-white/10">
-      {% for p in pages %}
-        <div class="px-4 py-4">
-          <div class="text-xs text-slate-400">{{ p.category|title }} • {{ p.status|title }}</div>
-          <div class="text-sm text-white break-all">{{ p.url }}</div>
-
-          <div id="summary-display-{{ p.id }}" class="mt-2 text-sm text-slate-300 whitespace-pre-line break-words">
-            {% if p.summary %}
-              {{ p.summary }}
-            {% elif p.status == "failed" %}
-              {{ p.error }}
-            {% else %}
-              Summary not ready yet...
-            {% endif %}
-          </div>
-
-          <textarea id="summary-edit-{{ p.id }}"
-            class="hidden w-full mt-2 bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
-            rows="6">{% if p.summary %}{{ p.summary }}{% endif %}</textarea>
-
-          <div class="mt-2 flex items-center gap-2">
-            <button type="button" class="edit-btn px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white" data-page-id="{{ p.id }}">Edit</button>
-            <button type="button" class="save-btn hidden px-3 py-1.5 text-xs rounded-lg bg-teal-600 hover:bg-teal-500 text-white" data-page-id="{{ p.id }}">Save</button>
-            <button type="button" class="cancel-btn hidden px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white" data-page-id="{{ p.id }}">Cancel</button>
-            <span id="save-status-{{ p.id }}" class="text-xs text-slate-500"></span>
-          </div>
+      <div class="border-t border-white/10 p-4">
+        <div class="text-sm text-slate-300 mb-2">AI Summary</div>
+        <div class="text-sm text-slate-200 whitespace-pre-line">
+          {% if src.summary %}{{ src.summary }}{% else %}Summary not ready yet…{% endif %}
         </div>
-      {% empty %}
-        <div class="px-4 py-6 text-slate-400">No pages.</div>
-      {% endfor %}
-    </div>
-  {% endif %}
+      </div>
+
+    {# ===================== WEBSITE / DOCUMENT ===================== #}
+    {% else %}
+      <div class="divide-y divide-white/10">
+        {% for p in pages %}
+          <div class="px-4 py-4">
+            <div class="text-xs text-slate-400">
+              {{ p.category|title }} • {{ p.status|title }}
+            </div>
+
+            <div class="text-sm text-white break-all">{{ p.url }}</div>
+
+            {# ---------- PAGE TAGS (for website pages) ---------- #}
+            {% if src.source_type == "website" %}
+              <div class="mt-2 flex flex-wrap gap-2">
+                {% for t in p.tags.all %}
+                  <span class="px-2 py-1 text-xs rounded-full bg-white/10 border border-white/10 text-slate-200">
+                    {{ t.name }}
+                  </span>
+                {% empty %}
+                  <span class="text-xs text-slate-500">No tags yet…</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div id="summary-display-{{ p.id }}" class="mt-2 text-sm text-slate-300 whitespace-pre-line break-words">
+              {% if p.summary %}
+                {{ p.summary }}
+              {% elif p.status == "failed" %}
+                {{ p.error }}
+              {% else %}
+                Summary not ready yet...
+              {% endif %}
+            </div>
+
+            <textarea
+              id="summary-edit-{{ p.id }}"
+              class="hidden w-full mt-2 bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
+              rows="6">{% if p.summary %}{{ p.summary }}{% endif %}</textarea>
+
+            <div class="mt-2 flex items-center gap-2">
+              <button type="button" class="edit-btn px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white" data-page-id="{{ p.id }}">Edit</button>
+              <button type="button" class="save-btn hidden px-3 py-1.5 text-xs rounded-lg bg-teal-600 hover:bg-teal-500 text-white" data-page-id="{{ p.id }}">Save</button>
+              <button type="button" class="cancel-btn hidden px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white" data-page-id="{{ p.id }}">Cancel</button>
+              <span id="save-status-{{ p.id }}" class="text-xs text-slate-500"></span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="px-4 py-6 text-slate-400">No pages.</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
 </div>
 
-  </div>
-
+{# --- Your existing JS blocks stay the same below --- #}
 
 <script>
   function pct(done, total) {
@@ -162,9 +203,7 @@
     const res = await fetch("/sources/{{ src.id }}/progress/");
     const data = await res.json();
 
-    document.getElementById("status").textContent = (
-      data.status || ""
-    ).toUpperCase();
+    document.getElementById("status").textContent = (data.status || "").toUpperCase();
     document.getElementById("done").textContent = data.processed || 0;
     document.getElementById("total").textContent = data.total || 0;
 
@@ -198,7 +237,6 @@
     const editBtn = e.target.closest(".edit-btn");
     const saveBtn = e.target.closest(".save-btn");
     const cancelBtn = e.target.closest(".cancel-btn");
-
     if (!editBtn && !saveBtn && !cancelBtn) return;
 
     const pageId = (editBtn || saveBtn || cancelBtn).dataset.pageId;
@@ -212,10 +250,7 @@
     const cancel = row.querySelector(".cancel-btn");
 
     if (editBtn) {
-      textarea.value =
-        display.textContent.trim() === "Summary not ready yet..."
-          ? ""
-          : display.textContent;
+      textarea.value = display.textContent.trim() === "Summary not ready yet..." ? "" : display.textContent;
       display.classList.add("hidden");
       textarea.classList.remove("hidden");
       edit.classList.add("hidden");
@@ -248,22 +283,16 @@
             "Content-Type": "application/json",
             "X-CSRFToken": csrftoken,
             "X-Requested-With": "XMLHttpRequest",
-            Accept: "application/json",
+            "Accept": "application/json",
           },
           body: JSON.stringify({ summary: newSummary }),
         });
 
-        // Robust parsing (handles 403/302/404 HTML pages cleanly)
         const contentType = resp.headers.get("content-type") || "";
         const raw = await resp.text();
 
         if (!contentType.includes("application/json")) {
-          throw new Error(
-            `Non-JSON response (${resp.status}). First chars: ${raw.slice(
-              0,
-              80
-            )}`
-          );
+          throw new Error(`Non-JSON response (${resp.status}). First chars: ${raw.slice(0, 80)}`);
         }
 
         const data = JSON.parse(raw);

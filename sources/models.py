@@ -1,6 +1,23 @@
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.text import slugify
+
+class Tag(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tags")
+    name = models.CharField(max_length=60)
+    slug = models.SlugField(max_length=80)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "slug")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)[:80]
+        super().save(*args, **kwargs)
+
 
 class DataSource(models.Model):
     TYPE_CHOICES = [
@@ -37,6 +54,7 @@ class DataSource(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    tags = models.ManyToManyField(Tag, blank=True, related_name="data_sources")
 
     def __str__(self):
         return f"{self.name} ({self.source_type})"
@@ -68,6 +86,7 @@ class DataSourcePage(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    tags = models.ManyToManyField(Tag, blank=True, related_name="pages")
 
     class Meta:
         unique_together = [("source", "url")]
@@ -78,3 +97,4 @@ class DataSourcePage(models.Model):
 
     def __str__(self):
         return self.url
+
