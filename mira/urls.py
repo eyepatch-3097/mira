@@ -25,6 +25,7 @@ urlpatterns = [
     path("", include("accounts.urls")),
     path("", include("landing.urls")),
     path("", include("sources.urls")),
+    path("agents/", include("agents.urls")),
 ]
 
 if settings.DEBUG:

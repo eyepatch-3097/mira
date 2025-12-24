@@ -1,0 +1,237 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Create Agent{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- Left: Form -->
+  <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-white">Create Agent</h1>
+        <div class="text-sm text-slate-400 mt-1">Customize your chatbot UI and preview it live.</div>
+      </div>
+      <a href="/dashboard/" class="text-sm text-slate-400 hover:text-white">← Back</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="mt-6 space-y-5">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl p-3 text-sm">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div>
+        <label class="text-sm text-slate-300">Chatbot name</label>
+        <input id="id_name" name="name" value="{{ form.name.value|default:'' }}"
+          class="w-full mt-2 bg-slate-950 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
+          placeholder="e.g., Mira Support Bot" required />
+        {% if form.name.errors %}<div class="text-xs text-red-300 mt-1">{{ form.name.errors }}</div>{% endif %}
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-300">Brief description</label>
+        <textarea id="id_description" name="description" rows="3"
+          class="w-full mt-2 bg-slate-950 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
+          placeholder="What should this chatbot help with?">{{ form.description.value|default:'' }}</textarea>
+        {% if form.description.errors %}<div class="text-xs text-red-300 mt-1">{{ form.description.errors }}</div>{% endif %}
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-300">Bot icon</label>
+        <input id="id_icon" name="icon" type="file" accept="image/*"
+          class="w-full mt-2 text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-white/10 file:text-white hover:file:bg-white/15" />
+        {% if form.icon.errors %}<div class="text-xs text-red-300 mt-1">{{ form.icon.errors }}</div>{% endif %}
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-300">Greeting message</label>
+        <input id="id_greeting_message" name="greeting_message" value="{{ form.greeting_message.value|default:'Hi! How can I help you?' }}"
+          class="w-full mt-2 bg-slate-950 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-teal-500"
+          placeholder="Hi! How can I help you?" />
+        {% if form.greeting_message.errors %}<div class="text-xs text-red-300 mt-1">{{ form.greeting_message.errors }}</div>{% endif %}
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm text-slate-300">Window title color</label>
+          <input id="id_title_bar_color" name="title_bar_color" type="color"
+            value="{{ form.title_bar_color.value|default:'#0F172A' }}"
+            class="w-full mt-2 h-10 bg-transparent border border-white/10 rounded-xl p-1" />
+        </div>
+
+        <div>
+          <label class="text-sm text-slate-300">Window background color</label>
+          <input id="id_window_bg_color" name="window_bg_color" type="color"
+            value="{{ form.window_bg_color.value|default:'#020617' }}"
+            class="w-full mt-2 h-10 bg-transparent border border-white/10 rounded-xl p-1" />
+        </div>
+
+        <div>
+          <label class="text-sm text-slate-300">Bot bubble color</label>
+          <input id="id_bot_bubble_color" name="bot_bubble_color" type="color"
+            value="{{ form.bot_bubble_color.value|default:'#0EA5A4' }}"
+            class="w-full mt-2 h-10 bg-transparent border border-white/10 rounded-xl p-1" />
+        </div>
+
+        <div>
+          <label class="text-sm text-slate-300">User bubble color</label>
+          <input id="id_user_bubble_color" name="user_bubble_color" type="color"
+            value="{{ form.user_bubble_color.value|default:'#334155' }}"
+            class="w-full mt-2 h-10 bg-transparent border border-white/10 rounded-xl p-1" />
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="text-sm text-slate-300">Text color</label>
+          <input id="id_text_color" name="text_color" type="color"
+            value="{{ form.text_color.value|default:'#E2E8F0' }}"
+            class="w-full mt-2 h-10 bg-transparent border border-white/10 rounded-xl p-1" />
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center gap-3">
+        <button type="submit" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium">
+          Create Agent
+        </button>
+        <div class="text-xs text-slate-400">Next: select data sources.</div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: Live Preview -->
+  <div class="bg-slate-900/40 border border-white/10 rounded-2xl p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-sm text-slate-300 font-medium">Live preview</div>
+        <div class="text-xs text-slate-500 mt-1">This is how the widget will look on your website.</div>
+      </div>
+    </div>
+
+    <div class="mt-5 flex justify-center">
+      <div id="preview-widget" class="w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden shadow-lg">
+        <!-- Header -->
+        <div id="pv-header" class="px-4 py-3 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex items-center justify-center">
+            <img id="pv-icon" class="w-full h-full object-cover hidden" alt="Bot icon" />
+            <span id="pv-icon-fallback" class="text-xs text-slate-200">BOT</span>
+          </div>
+          <div class="min-w-0">
+            <div id="pv-title" class="text-sm font-semibold truncate">Your Bot</div>
+            <div class="text-[11px] opacity-80">Online</div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div id="pv-body" class="px-4 py-4 space-y-3 min-h-[260px]">
+          <div class="flex gap-2">
+            <div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px]">🤖</div>
+            <div id="pv-bot-bubble" class="px-3 py-2 rounded-2xl rounded-tl-sm text-sm max-w-[85%]">
+              <span id="pv-greeting">Hi! How can I help you?</span>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <div id="pv-user-bubble" class="px-3 py-2 rounded-2xl rounded-tr-sm text-sm max-w-[85%]">
+              Do you have a portfolio?
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px]">🤖</div>
+            <div id="pv-bot-bubble2" class="px-3 py-2 rounded-2xl rounded-tl-sm text-sm max-w-[85%]">
+              Yes — I can help you find the right document. Share your email to unlock it.
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-3 py-3 border-t border-white/10 flex items-center gap-2">
+          <input class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none"
+            placeholder="Type a message..." />
+          <button class="px-3 py-2 rounded-xl bg-white/10 text-sm">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  function $(id){ return document.getElementById(id); }
+
+  const nameEl = $("id_name");
+  const greetEl = $("id_greeting_message");
+  const iconEl = $("id_icon");
+
+  const titleBarEl = $("id_title_bar_color");
+  const bgEl = $("id_window_bg_color");
+  const botBubbleEl = $("id_bot_bubble_color");
+  const userBubbleEl = $("id_user_bubble_color");
+  const textEl = $("id_text_color");
+
+  const pvHeader = $("pv-header");
+  const pvBody = $("pv-body");
+  const pvTitle = $("pv-title");
+  const pvGreeting = $("pv-greeting");
+
+  const pvBotBubble = $("pv-bot-bubble");
+  const pvBotBubble2 = $("pv-bot-bubble2");
+  const pvUserBubble = $("pv-user-bubble");
+
+  const pvIcon = $("pv-icon");
+  const pvIconFallback = $("pv-icon-fallback");
+
+  function applyPreview(){
+    const title = (nameEl.value || "Your Bot").trim();
+    const greeting = (greetEl.value || "Hi! How can I help you?").trim();
+
+    pvTitle.textContent = title;
+    pvGreeting.textContent = greeting;
+
+    const titleColor = titleBarEl.value || "#0F172A";
+    const bgColor = bgEl.value || "#020617";
+    const botColor = botBubbleEl.value || "#0EA5A4";
+    const userColor = userBubbleEl.value || "#334155";
+    const textColor = textEl.value || "#E2E8F0";
+
+    pvHeader.style.background = titleColor;
+    pvHeader.style.color = textColor;
+
+    pvBody.style.background = bgColor;
+    pvBody.style.color = textColor;
+
+    pvBotBubble.style.background = botColor;
+    pvBotBubble.style.color = textColor;
+
+    pvBotBubble2.style.background = botColor;
+    pvBotBubble2.style.color = textColor;
+
+    pvUserBubble.style.background = userColor;
+    pvUserBubble.style.color = textColor;
+  }
+
+  ["input", "change"].forEach(evt => {
+    nameEl.addEventListener(evt, applyPreview);
+    greetEl.addEventListener(evt, applyPreview);
+    titleBarEl.addEventListener(evt, applyPreview);
+    bgEl.addEventListener(evt, applyPreview);
+    botBubbleEl.addEventListener(evt, applyPreview);
+    userBubbleEl.addEventListener(evt, applyPreview);
+    textEl.addEventListener(evt, applyPreview);
+  });
+
+  iconEl.addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    pvIcon.src = url;
+    pvIcon.classList.remove("hidden");
+    pvIconFallback.classList.add("hidden");
+  });
+
+  applyPreview();
+</script>
+{% endblock %}
