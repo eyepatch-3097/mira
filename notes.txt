@@ -1,0 +1,242 @@
+Done works with python manage.py run_source_jobs.
+
+Now lets come to the important part of the chatbot. We have added data sources. Now using these data sources, user should be able to create chatbots for their website.
+
+1. User selects new agent from dashboard. They enter Chatbot name, put in icon image for chatbot, and create chatbot user interface.
+
+2. User selects the data sources the chatbot should refer, they will do it for 4 things. Website Guidance data, they can select from data sources which have type website or type custom. This data will be used to help users navigate to the right page. Contact Data, user can select from data source type sheets or custom or website. Support FAQ data, user can select from data source type custom or website or document. Document referral, user can select from data source type document.
+
+3. Based on the selected sources, the knowledge base of the chatbot is built. It should know which data sources to refer to while answering a question and uses AI to formulate their answers.
+
+4. Intent detection should happen with the chatbot and basis intent and user question, it should refer to data sources and guide users. If user is looking for some info, they should either be taken to a webpage. If they are looking for products, they should see buttons and preview thumbnails of the webpages. If they are looking for documents like portfolio, they should get gated access to documents once they enter their contact info. 
+
+5. Preview should be seen in the chatbot creation page of the chatbot UI and they should be able to ask questions to the chatbot once data sources are selected and finalised.
+
+
+First understand the requirements and explain what you have understood and how to build this.
+
+
+--- RESPONSE ---
+
+Here’s what I understood (and a practical way to build it on top of what you already have).
+
+## What you want the chatbot to do
+
+### A) Builder flow (in your app)
+
+1. **Create a new chatbot/agent**
+
+* User gives: chatbot name, icon image, UI settings (colors, greeting, position, etc.)
+* They can **preview** the widget right there.
+
+2. **Attach knowledge sources, split into 4 “capabilities”**
+   User selects data sources for:
+
+* **Website Guidance** → (website + custom) → used to *route users to the right page*
+* **Contact Data** → (sheets + custom + website) → used to answer “how do I contact / who handles X”
+* **Support FAQ** → (custom + website + document) → used to answer support questions
+* **Document Referral** → (document) → used to recommend portfolios/docs and gate access
+
+3. **Knowledge base is “built” from selected sources**
+   Meaning: the chatbot is aware of:
+
+* which sources it is allowed to use
+* which “capability bucket” each source belongs to
+* tags/keywords for retrieval (source-level tags for non-websites, page-level tags for websites)
+
+4. **Runtime chatbot behavior**
+
+* Detect intent per message
+* Retrieve relevant sources/pages/docs (using tags + text search/semantic later)
+* Respond in the right UI format:
+
+  * navigation answers → link buttons
+  * product-type browsing → cards with thumbnails + CTA buttons
+  * document referrals → gated flow (collect contact info, then unlock doc links)
+* It should also “know when to refer” to web pages vs FAQ vs contacts vs docs
+
+5. **Testing inside builder**
+   Once sources are finalized, the builder preview lets them chat and see outputs.
+
+---
+
+## How to build this cleanly (recommended architecture)
+
+### 1) Data model additions (minimal but scalable)
+
+**Chatbot**
+
+* user (owner)
+* name, icon, UI config JSON (colors, greeting, etc.)
+* status (draft/active)
+* created_at
+
+**ChatbotSourceLink** (mapping table)
+
+* chatbot (FK)
+* datasource (FK)
+* **purpose**: enum = `guidance`, `contact`, `support`, `doc_referral`
+* enabled (bool)
+
+**LeadCapture** (for gated docs)
+
+* chatbot (FK)
+* conversation_id (optional)
+* name, email, phone, company (optional)
+* created_at
+
+**ChatMessage / Conversation (optional but useful)**
+
+* chatbot, session_id
+* role (user/assistant)
+* text
+* detected_intent
+* sources_used JSON (ids)
+* created_at
+
+You already have:
+
+* `DataSource.tags` (for non-website sources)
+* `DataSourcePage.tags` (for website pages)
+* summaries everywhere (src.summary or page.summary)
+
+That’s perfect for the first version.
+
+---
+
+### 2) “Knowledge base build” (what it should do now)
+
+Don’t overcomplicate: “build” = validate + index + version.
+
+When user finalizes sources:
+
+* validate types match each capability bucket
+* compute a `kb_version` hash (sources list + updated_at stamps)
+* optionally precompute:
+
+  * a combined “catalog” text for retrieval
+  * a “top tags list” for the bot UI
+
+Later you can add embeddings; for now tags + summaries are enough to ship V1.
+
+---
+
+### 3) Chat runtime pipeline (the core logic)
+
+For every user message:
+
+#### Step 1 — Intent detection
+
+Classify into something like:
+
+* `NAVIGATION` (find the right page)
+* `SUPPORT_FAQ` (how-to, troubleshooting)
+* `CONTACT_LOOKUP` (email/phone/person)
+* `DOC_REQUEST` (portfolio, brochure, proposal, case study)
+* `GENERAL` (fallback)
+
+This can be a lightweight OpenAI call (fast model), or rule+LLM hybrid.
+
+#### Step 2 — Choose which source buckets are allowed
+
+Based on intent:
+
+* NAVIGATION → use `guidance` sources (website pages + custom)
+* SUPPORT_FAQ → use `support` sources (custom/docs/website)
+* CONTACT_LOOKUP → use `contact` sources (sheets/custom/website)
+* DOC_REQUEST → use `doc_referral` sources (documents)
+* GENERAL → choose best bucket or ask a clarification question
+
+#### Step 3 — Retrieve best candidates
+
+V1 retrieval (fast + easy):
+
+* Use **tags as a filter** + search over summaries
+* For websites: search `DataSourcePage.summary` + tags
+* For non-websites: search `DataSource.summary` + tags
+
+Return top N (ex: 3–6).
+
+> Important note for **Contact Data (sheets)**:
+> Right now you only store top 10 preview rows. That’s not enough for real “lookup”.
+> If you want the chatbot to answer “give me Rohit’s email”, you should ingest the full sheet into a `SheetRow` table (JSONField) or a slim normalized table. Otherwise the bot can only say “this sheet contains columns X/Y”.
+
+#### Step 4 — Generate response with “structured output”
+
+Don’t return only text. Return:
+
+* assistant text
+* `ui_blocks`: buttons/cards/forms
+* `citations`: which sources/pages were used
+
+Example UI blocks:
+
+* **NAVIGATION** → buttons with page URLs
+* **PRODUCT/BROWSE** → cards (title, snippet, image_url/thumbnail if you have it)
+* **DOC_REQUEST** → if no lead captured → show form; else show doc links
+
+#### Step 5 — Gated docs
+
+If intent = DOC_REQUEST:
+
+* check if lead exists for this session/user
+* if not: respond with “Please share your email to unlock”
+* after capture: return secure doc links (or trigger email)
+
+Security options:
+
+* simplest: store docs behind login + generate a signed token URL `/docs/access/<token>/`
+* better: expiring signed URLs if on S3 later
+
+---
+
+## How the builder “preview chat” works
+
+On chatbot creation page:
+
+* right side panel: embedded widget preview
+* it calls your own backend endpoint with chatbot_id
+* uses the exact same pipeline as production, but maybe flagged as `mode=preview`
+
+---
+
+## Implementation plan (clean and incremental)
+
+### Phase 1 (ship quickly, works with your current system)
+
+* Chatbot CRUD + UI config
+* Source selection by bucket
+* Intent detection + tag/summary retrieval
+* Navigation + FAQ + doc gating flows
+* Preview chat in builder
+* Basic logging
+
+### Phase 2 (makes answers *much* smarter)
+
+* Store full sheet rows for contact lookup
+* Store parsed document text chunks
+* Add embeddings + semantic retrieval per chunk
+* Better product-style cards (titles, thumbnails via metadata/snapshots)
+
+---
+
+## What I’d build next (concrete next steps)
+
+1. Create `Chatbot` + `ChatbotSourceLink` models + migrations
+2. Builder UI:
+
+   * create chatbot form (name, icon, UI config)
+   * source selection UI with the 4 buckets
+   * preview panel that hits `/api/chat/<chatbot_id>/`
+3. Backend:
+
+   * `POST /api/chat/<chatbot_id>/message` → returns `{text, ui_blocks, intent, citations}`
+   * lead capture endpoint for doc gating
+4. Retrieval helpers:
+
+   * `get_allowed_pages(chatbot, bucket)` and `get_allowed_sources(chatbot, bucket)`
+   * `rank_candidates(query, candidates)` using tags + summary search (V1)
+
+---
+
+If you paste your current `DataSource` / `DataSourcePage` models (especially how tags are stored), I’ll give you the exact model definitions + the retrieval function skeletons and the API response format for the widget (so frontend stays simple).

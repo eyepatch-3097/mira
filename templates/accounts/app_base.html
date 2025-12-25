@@ -195,7 +195,7 @@
 
             <!-- Create Agent -->
             <a href="/agents/new"
-               class="nav-link group {% if request.path|slice:':8' == '/agents/' %}active{% endif %}">
+               class="nav-link group {% if request.path == '/agents/new/' %}active{% endif %}">
                <div class="icon-box">
                 <i class="fa-solid fa-robot"></i>
               </div>
@@ -204,6 +204,19 @@
                 <div class="text-xs text-slate-500">AI Agent Build & Deploy</div>
               </div>
             </a>
+
+            <!-- Agent History -->
+            <a href="{% url 'agent_list' %}"
+               class="nav-link group {% if request.path == '/agents/' %}active{% endif %}">
+               <div class="icon-box">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <div>
+                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Your Agents</div>
+                <div class="text-xs text-slate-500">AI Agent Log</div>
+              </div>
+            </a>
+
 
             <!-- Logout -->
             <div class="pt-4 mt-4 border-t border-white/5">
