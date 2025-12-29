@@ -1,0 +1,227 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Test — {{ agent.name }}{% endblock %}
+
+{% block content %}
+<style>
+  :root{
+    --mira-title-bg: {{ agent.title_bar_color|default:"#0b1220" }};
+    --mira-bg: {{ agent.window_bg_color|default:"#0b1220" }};
+    --mira-bot-bubble: {{ agent.bot_bubble_color|default:"#0ea5e9" }};
+    --mira-user-bubble: {{ agent.user_bubble_color|default:"#334155" }};
+    --mira-text: {{ agent.text_color|default:"#e2e8f0" }};
+  }
+</style>
+
+<div class="max-w-6xl mx-auto">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Test: {{ agent.name }}</h1>
+      <div class="text-sm text-slate-400">Ask questions and inspect intents + sources used.</div>
+    </div>
+    <a href="{% url 'agent_sources' agent.id %}" class="text-sm text-slate-400 hover:text-white">
+      ← Back to sources
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Chat panel -->
+    <div class="lg:col-span-2 bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden">
+      <!-- Title bar -->
+      <div class="px-4 py-3 flex items-center gap-3" style="background: var(--mira-title-bg);">
+        {% if agent.icon %}
+          <img src="{{ agent.icon.url }}" class="w-8 h-8 rounded-full object-cover border border-white/20" alt="bot icon">
+        {% else %}
+          <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20"></div>
+        {% endif %}
+        <div class="text-white font-semibold">
+          {{ agent.window_title|default:agent.name }}
+        </div>
+      </div>
+
+      <!-- Chat body -->
+      <div id="chatBody"
+           class="p-4 min-h-[520px] max-h-[520px] overflow-auto"
+           style="background: var(--mira-bg); color: var(--mira-text);">
+      </div>
+
+      <!-- Input -->
+      <div class="p-4 border-t border-white/10" style="background: var(--mira-bg);">
+        <div class="flex gap-2">
+          <input id="chatInput"
+                 class="flex-1 rounded-xl px-3 py-2 bg-black/20 border border-white/10 focus:outline-none focus:border-teal-500"
+                 style="color: var(--mira-text);"
+                 placeholder="Type a message..." />
+          <button id="sendBtn"
+                  class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white">
+            Send
+          </button>
+        </div>
+        <div id="statusLine" class="mt-2 text-xs text-slate-400"></div>
+      </div>
+    </div>
+
+    <!-- Debug panel -->
+    <div class="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden">
+      <div class="bg-white/5 px-4 py-3 text-sm text-slate-300 font-medium">Debug</div>
+
+      <div class="p-4 space-y-4">
+        <div>
+          <div class="text-xs text-slate-400 mb-2">Intents</div>
+          <div id="dbgIntents" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
+        </div>
+
+        <div>
+          <div class="text-xs text-slate-400 mb-2">Citations / What was used</div>
+          <div id="dbgCitations" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
+        </div>
+
+        <div>
+          <div class="text-xs text-slate-400 mb-2">Actions (gating)</div>
+          <div id="dbgActions" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- session id persisted per agent ---
+  const SESSION_KEY = "mira_agent_session_{{ agent.id }}";
+  function uuidFallback() {
+    return "sess_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+  }
+  function getSessionId() {
+    let sid = localStorage.getItem(SESSION_KEY);
+    if (!sid) {
+      sid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : uuidFallback();
+      localStorage.setItem(SESSION_KEY, sid);
+    }
+    return sid;
+  }
+
+  // --- UI helpers ---
+  const chatBody = document.getElementById("chatBody");
+  const chatInput = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const statusLine = document.getElementById("statusLine");
+
+  const dbgIntents = document.getElementById("dbgIntents");
+  const dbgCitations = document.getElementById("dbgCitations");
+  const dbgActions = document.getElementById("dbgActions");
+
+  function escapeHtml(s) {
+    return (s || "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+
+  function addBubble(who, text) {
+    const wrap = document.createElement("div");
+    wrap.className = "w-full mb-3 flex " + (who === "user" ? "justify-end" : "justify-start");
+
+    const bubble = document.createElement("div");
+    bubble.className = "max-w-[80%] px-3 py-2 rounded-2xl text-sm border border-white/10 whitespace-pre-line";
+    bubble.style.background = (who === "user") ? "var(--mira-user-bubble)" : "color-mix(in oklab, var(--mira-bot-bubble) 18%, transparent)";
+    bubble.style.color = "var(--mira-text)";
+    bubble.innerHTML = escapeHtml(text);
+
+    wrap.appendChild(bubble);
+    chatBody.appendChild(wrap);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function setDebug(resp) {
+    if (!resp) {
+      dbgIntents.textContent = "—";
+      dbgCitations.textContent = "—";
+      dbgActions.textContent = "—";
+      return;
+    }
+
+    // intents are objects like {type, roles, query}
+    const intents = (resp.debug?.intents || [])
+      .map(i => {
+        const roles = (i.roles || []).join("/");
+        return roles ? `${i.type} → ${roles}` : i.type;
+      })
+      .join(", ");
+
+    dbgIntents.textContent = intents || "—";
+
+    const ev = resp.debug?.evidence || [];
+    dbgCitations.textContent = ev.length
+      ? ev.map(e => `${e.kind}: ${(e.url || e.title || e.meta?.source_name || "").slice(0, 60)}`).join(" | ")
+      : "—";
+
+    const acts = resp.actions || [];
+    dbgActions.textContent = acts.length
+      ? acts.map(a => `${a.type}${a.reason ? ` (${a.reason})` : ""}`).join(" | ")
+      : "—";
+  }
+
+  // CSRF
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return "";
+  }
+  const csrftoken = getCookie("csrftoken");
+
+  // Greeting on load
+  (function initGreeting() {
+    const greeting = `{{ agent.greeting_message|default:"Hi! How can I help?"|escapejs }}`;
+    addBubble("bot", greeting);
+  })();
+
+  async function sendMessage() {
+    const text = (chatInput.value || "").trim();
+    if (!text) return;
+
+    const session_id = getSessionId();
+
+    addBubble("user", text);
+    chatInput.value = "";
+    statusLine.textContent = "Thinking…";
+    setDebug(null);
+
+    try {
+      const resp = await fetch("{% url 'agent_chat_api' agent.id %}", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken,
+          "X-Requested-With": "XMLHttpRequest",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: session_id,
+          message: text
+        }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok || !data.ok) {
+        addBubble("bot", data.error || "Something went wrong.");
+        statusLine.textContent = "";
+        return;
+      }
+
+      // if server rotates/returns session_id, keep it
+      if (data.session_id) localStorage.setItem(SESSION_KEY, data.session_id);
+
+      addBubble("bot", data.answer || "");
+      setDebug(data.debug || null);
+      statusLine.textContent = "";
+    } catch (e) {
+      addBubble("bot", "Network/Server error.");
+      statusLine.textContent = "";
+    }
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+</script>
+{% endblock %}
