@@ -1,15 +1,10 @@
 # agents/services/router.py
 import os
 import json
-import re
 from typing import Any, Dict, List, Optional
-from openai import OpenAI
+
 from agents.services.openai_client import get_openai_client
 
-client = None
-
-
-# Keep your existing intent set, but add GREETING explicitly
 ALLOWED_INTENTS = [
     "GREETING",
     "NAVIGATE_PAGE",
@@ -29,100 +24,126 @@ INTENT_TO_ROLES = {
     "SUPPORT_FAQ": ["support_faq"],
     "CONTACT_LOOKUP": ["contact_data"],
     "DOC_REQUEST": ["document_referral"],
-    "LEAD_GEN": ["website_guidance", "support_faq"],  # optional enrichment
+    "LEAD_GEN": ["website_guidance", "support_faq", "contact_data"],
     "SMALLTALK": [],
     "UNKNOWN": [],
 }
 
+# These should trigger your lead-form UX downstream
+GATED_INTENTS = {"DOC_REQUEST", "LEAD_GEN", "CONTACT_LOOKUP"}
 
-GATED_INTENTS = {"DOC_REQUEST", "LEAD_GEN"}
 
-def _minimal_fallback(question: str, max_intents: int) -> List[Dict[str, Any]]:
+def _minimal_unknown(question: str) -> List[Dict[str, Any]]:
     q = (question or "").strip()
     return [{
         "type": "UNKNOWN",
-        "confidence": 0.01,
-        "query": q[:140] or "unknown",
+        "confidence": 0.2,
+        "query": (q[:140] if q else "unknown"),
         "roles": [],
         "requires_gating": False,
         "needs_clarification": True,
-        "clarifying_question": "What can I help with—navigation, products, support/policies, contact info, or documents?",
-    }][:max_intents]
+        "clarifying_question": "What would you like help with—services, navigating the site, support/policies, documents, or reaching the team?",
+    }]
 
-def _safe_json_load(raw: str) -> Optional[Dict[str, Any]]:
-    if not raw:
-        return None
-    raw = raw.strip()
-    # If model returns code fences or extra text, this will still fail;
-    # keep it strict for now, we can add extraction if needed.
+
+def _safe_json_loads(raw: str) -> Optional[Dict[str, Any]]:
     try:
-        return json.loads(raw)
+        return json.loads((raw or "").strip())
     except Exception:
         return None
 
-def _fallback_router(question: str):
-    q = (question or "").lower()
-    intents = []
-    if any(x in q for x in ["portfolio", "case study", "resume", "pdf", "document"]):
-        intents.append({"type": "DOC_REQUEST", "confidence": 0.75})
-    if any(x in q for x in ["contact", "email", "phone", "linkedin"]):
-        intents.append({"type": "CONTACT_LOOKUP", "confidence": 0.7})
-    if any(x in q for x in ["refund", "return", "shipping", "warranty", "policy"]):
-        intents.append({"type": "SUPPORT_FAQ", "confidence": 0.7})
-    if any(x in q for x in ["buy", "price", "products", "collection"]):
-        intents.append({"type": "PRODUCT_DISCOVERY", "confidence": 0.65})
-    if not intents:
-        intents.append({"type": "UNKNOWN", "confidence": 0.4})
-    return intents[:2]
+
+def _canonical_intent(val: Any) -> str:
+    """
+    Canonicalize model output to our enum.
+    This is NOT keyword routing; it's just normalization of the label.
+    """
+    s = (val or "")
+    if not isinstance(s, str):
+        return ""
+    s = s.strip().upper()
+    # common variations the model might produce
+    s = s.replace("-", "_").replace(" ", "_")
+    return s
 
 
 def detect_intents(question: str, max_intents: int = 2) -> List[Dict[str, Any]]:
     q = (question or "").strip()
     if not q:
-        return _minimal_fallback(q, max_intents)
+        return _minimal_unknown(q)[:max_intents]
 
     client = get_openai_client()
 
+    # JSON mode requirement: input must contain the word "json"
     instructions = (
         "You are an intent router for a website chatbot.\n"
-        "Return STRICT JSON only. No markdown. No commentary.\n"
-        f"Allowed intent types: {', '.join(ALLOWED_INTENTS)}.\n"
+        "Return STRICT json only (no markdown, no commentary).\n"
+        f"Allowed intent types (MUST match EXACTLY): {', '.join(ALLOWED_INTENTS)}.\n"
         "Pick at most 2 intents.\n"
-        "Each intent must include: type, confidence (0-1), query (short), requires_gating (bool).\n"
-        "Set requires_gating=true for DOC_REQUEST or LEAD_GEN.\n"
-        "If unclear, return UNKNOWN and set needs_clarification=true and provide clarifying_question.\n"
+        "Each intent MUST include:\n"
+        "- type: one of the allowed intent types EXACTLY\n"
+        "- confidence: number from 0 to 1\n"
+        "- query: a short retrieval query to find relevant pages\n"
+        "- requires_gating: true for DOC_REQUEST / LEAD_GEN / CONTACT_LOOKUP, else false\n"
+        "Also include:\n"
+        "- needs_clarification: boolean\n"
+        "- clarifying_question: string (empty if not needed)\n"
+        "\n"
+        "Routing rules:\n"
+        "- Business/marketing problem statements (CAC, ROAS, conversions, retention, growth) => PRODUCT_DISCOVERY\n"
+        "- User asks to reach out / book a call / demo / speak to someone => LEAD_GEN\n"
+        "- User asks for email/phone/contact details => CONTACT_LOOKUP (may also add LEAD_GEN as 2nd intent)\n"
+        "- User requests a portfolio/resume/pdf/document => DOC_REQUEST\n"
+        "- Greeting => GREETING\n"
+        "- If unclear => UNKNOWN + ask ONE clarifying question\n"
+        "\n"
+        "Output must be valid json."
     )
 
-    schema_hint = {
+    schema = {
         "intents": [
-            {"type": "SUPPORT_FAQ", "confidence": 0.0, "query": "", "requires_gating": False}
+            {"type": "PRODUCT_DISCOVERY", "confidence": 0.7, "query": "short query", "requires_gating": False}
         ],
         "needs_clarification": False,
         "clarifying_question": "",
     }
 
+    # A few examples improve stability WITHOUT keyword routing in code.
+    examples = [
+        {"user": "Can I book a call with your team?", "intents": [{"type": "LEAD_GEN"}]},
+        {"user": "What’s your email / phone number?", "intents": [{"type": "CONTACT_LOOKUP"}, {"type": "LEAD_GEN"}]},
+        {"user": "My CAC is too high, what should I do?", "intents": [{"type": "PRODUCT_DISCOVERY"}]},
+        {"user": "Hi", "intents": [{"type": "GREETING"}]},
+        {"user": "Share your portfolio / resume", "intents": [{"type": "DOC_REQUEST"}]},
+    ]
+
     try:
         resp = client.responses.create(
             model=os.getenv("OPENAI_ROUTER_MODEL", "gpt-5-nano"),
             instructions=instructions,
-            input=f"USER QUESTION:\n{q}\n\nOUTPUT MUST MATCH THIS JSON SHAPE:\n{json.dumps(schema_hint)}",
-            text={"format": {"type": "text"}},
+            input="json request:\n" + json.dumps({
+                "question": q,
+                "schema": schema,
+                "examples": examples,
+            }),
+            text={"format": {"type": "json_object"}},
         )
 
         raw = (getattr(resp, "output_text", "") or "").strip()
-        data = _safe_json_load(raw)
+        data = _safe_json_loads(raw)
         if not data:
-            return _minimal_fallback(q, max_intents)
+            return _minimal_unknown(q)[:max_intents]
 
         intents_in = data.get("intents") or []
         needs_clarification = bool(data.get("needs_clarification"))
         clarifying_question = (data.get("clarifying_question") or "").strip()
 
-        cleaned = []
+        cleaned: List[Dict[str, Any]] = []
         seen = set()
+
         for it in intents_in:
-            t = (it.get("type") or "").strip()
-            if t not in ALLOWED_INTENTS or t in seen:
+            t = _canonical_intent(it.get("type"))
+            if not t or t not in ALLOWED_INTENTS or t in seen:
                 continue
             seen.add(t)
 
@@ -130,10 +151,11 @@ def detect_intents(question: str, max_intents: int = 2) -> List[Dict[str, Any]]:
                 conf = float(it.get("confidence") or 0.0)
             except Exception:
                 conf = 0.0
+            conf = max(0.0, min(1.0, conf))
 
             cleaned.append({
                 "type": t,
-                "confidence": max(0.0, min(1.0, conf)),
+                "confidence": conf,
                 "query": (it.get("query") or q)[:140],
                 "roles": INTENT_TO_ROLES.get(t, []),
                 "requires_gating": bool(it.get("requires_gating")) or (t in GATED_INTENTS),
@@ -142,9 +164,9 @@ def detect_intents(question: str, max_intents: int = 2) -> List[Dict[str, Any]]:
             })
 
         if not cleaned:
-            return _minimal_fallback(q, max_intents)
+            return _minimal_unknown(q)[:max_intents]
 
-        # drop UNKNOWN if we have something else
+        # drop UNKNOWN if something else exists
         if len(cleaned) > 1:
             cleaned = [x for x in cleaned if x["type"] != "UNKNOWN"]
 
@@ -152,4 +174,5 @@ def detect_intents(question: str, max_intents: int = 2) -> List[Dict[str, Any]]:
         return cleaned
 
     except Exception:
-        return _minimal_fallback(q, max_intents)
+        # No keyword routing; only safe UNKNOWN fallback
+        return _minimal_unknown(q)[:max_intents]

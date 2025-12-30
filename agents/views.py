@@ -1,5 +1,6 @@
 # agents/views.py
 import json
+import uuid
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -10,7 +11,7 @@ from django.db import transaction
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from .forms import AgentCreateForm
-from .models import Agent, AgentDataSource
+from .models import Agent, AgentDataSource, Conversation, Message
 from sources.models import DataSource
 from agents.services.indexer import rebuild_agent_index
 from agents.services.chat_runtime import chat_answer
@@ -168,7 +169,6 @@ def agent_sources(request, agent_id: int):
     })
 
 @login_required
-@ensure_csrf_cookie
 def agent_test(request, agent_id: int):
     agent = get_object_or_404(Agent, pk=agent_id, user=request.user)
     return render(request, "agents/agent_test.html", {"agent": agent})

@@ -13,11 +13,5 @@ def get_openai_client() -> OpenAI:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not set")
 
-    base_url = getattr(settings, "OPENAI_BASE_URL", None) or os.getenv("OPENAI_BASE_URL")
-
-    kwargs = {"api_key": api_key, "max_retries": 2}
-    if base_url:
-        kwargs["base_url"] = base_url
-
-    _client = OpenAI(**kwargs)
+    _client = OpenAI(api_key=api_key)
     return _client

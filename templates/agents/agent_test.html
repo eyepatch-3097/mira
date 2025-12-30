@@ -16,11 +16,16 @@
   <div class="flex items-start justify-between mb-4">
     <div>
       <h1 class="text-2xl font-bold text-white">Test: {{ agent.name }}</h1>
-      <div class="text-sm text-slate-400">Ask questions and inspect intents + sources used.</div>
+      <div class="text-sm text-slate-400">Ask questions and inspect decisions + evidence.</div>
     </div>
-    <a href="{% url 'agent_sources' agent.id %}" class="text-sm text-slate-400 hover:text-white">
-      ← Back to sources
-    </a>
+
+    <div class="flex items-center gap-3">
+      <button id="newSessionBtn"
+              class="px-3 py-1.5 text-xs rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/10">
+        + New session
+      </button>
+      <a href="/dashboard/" class="text-sm text-slate-400 hover:text-white">← Back</a>
+    </div>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -66,17 +71,17 @@
 
       <div class="p-4 space-y-4">
         <div>
-          <div class="text-xs text-slate-400 mb-2">Intents</div>
-          <div id="dbgIntents" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
+          <div class="text-xs text-slate-400 mb-2">Route</div>
+          <div id="dbgRoute" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
         </div>
 
         <div>
-          <div class="text-xs text-slate-400 mb-2">Citations / What was used</div>
-          <div id="dbgCitations" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
+          <div class="text-xs text-slate-400 mb-2">Evidence</div>
+          <div id="dbgEvidence" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
         </div>
 
         <div>
-          <div class="text-xs text-slate-400 mb-2">Actions (gating)</div>
+          <div class="text-xs text-slate-400 mb-2">Actions</div>
           <div id="dbgActions" class="text-sm text-slate-200 bg-black/20 border border-white/10 rounded-xl p-3 min-h-[52px]">—</div>
         </div>
       </div>
@@ -85,41 +90,41 @@
 </div>
 
 <script>
-  // --- session id persisted per agent ---
-  const SESSION_KEY = "mira_agent_session_{{ agent.id }}";
+  // TEST MODE: always start fresh unless you click "New session" manually.
+  // This prevents old lead data from being reused after refresh.
+  let sessionId = null;
+
+  // Deduplicate cards across chat so the same URLs don't re-appear after __continue__
+  const shownCardUrls = new Set();
+
   function uuidFallback() {
     return "sess_" + Math.random().toString(16).slice(2) + "_" + Date.now();
   }
-  function getSessionId() {
-    let sid = localStorage.getItem(SESSION_KEY);
-    if (!sid) {
-      sid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : uuidFallback();
-      localStorage.setItem(SESSION_KEY, sid);
-    }
-    return sid;
+  function newSessionId() {
+    return (crypto && crypto.randomUUID) ? crypto.randomUUID() : uuidFallback();
   }
 
-  // --- UI helpers ---
   const chatBody = document.getElementById("chatBody");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
   const statusLine = document.getElementById("statusLine");
+  const newSessionBtn = document.getElementById("newSessionBtn");
 
-  const dbgIntents = document.getElementById("dbgIntents");
-  const dbgCitations = document.getElementById("dbgCitations");
+  const dbgRoute = document.getElementById("dbgRoute");
+  const dbgEvidence = document.getElementById("dbgEvidence");
   const dbgActions = document.getElementById("dbgActions");
 
   function escapeHtml(s) {
     return (s || "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
   }
 
-  function addBubble(who, text) {
+  function addUserBubble(text) {
     const wrap = document.createElement("div");
-    wrap.className = "w-full mb-3 flex " + (who === "user" ? "justify-end" : "justify-start");
+    wrap.className = "w-full mb-3 flex justify-end";
 
     const bubble = document.createElement("div");
     bubble.className = "max-w-[80%] px-3 py-2 rounded-2xl text-sm border border-white/10 whitespace-pre-line";
-    bubble.style.background = (who === "user") ? "var(--mira-user-bubble)" : "color-mix(in oklab, var(--mira-bot-bubble) 18%, transparent)";
+    bubble.style.background = "var(--mira-user-bubble)";
     bubble.style.color = "var(--mira-text)";
     bubble.innerHTML = escapeHtml(text);
 
@@ -128,36 +133,151 @@
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 
-  function setDebug(resp) {
-    if (!resp) {
-      dbgIntents.textContent = "—";
-      dbgCitations.textContent = "—";
+  function createBotTurn() {
+    const wrap = document.createElement("div");
+    wrap.className = "w-full mb-4 flex justify-start";
+
+    const turn = document.createElement("div");
+    turn.className = "max-w-[90%] space-y-2";
+
+    wrap.appendChild(turn);
+    chatBody.appendChild(wrap);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return turn;
+  }
+
+  function addBotBubble(turn, text) {
+    const bubble = document.createElement("div");
+    bubble.className = "px-3 py-2 rounded-2xl text-sm border border-white/10 whitespace-pre-line";
+    bubble.style.background = "color-mix(in oklab, var(--mira-bot-bubble) 18%, transparent)";
+    bubble.style.color = "var(--mira-text)";
+    bubble.innerHTML = escapeHtml(text);
+    turn.appendChild(bubble);
+  }
+
+  function renderCards(turn, cards) {
+    if (!cards || !cards.length) return;
+
+    const filtered = cards.filter(c => {
+      const url = (c.url || "").trim();
+      if (!url) return false;
+      if (shownCardUrls.has(url)) return false;
+      shownCardUrls.add(url);
+      return true;
+    });
+
+    if (!filtered.length) return;
+
+    const grid = document.createElement("div");
+    grid.className = "grid grid-cols-1 md:grid-cols-2 gap-2";
+
+    filtered.forEach(c => {
+      const a = document.createElement("a");
+      a.href = c.url || "#";
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.className = "block rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 p-3";
+
+      const title = document.createElement("div");
+      title.className = "text-sm text-white font-semibold";
+      title.textContent = c.title || "Relevant page";
+
+      const sub = document.createElement("div");
+      sub.className = "mt-1 text-xs text-slate-300";
+      sub.textContent = c.subtitle || "";
+
+      const url = document.createElement("div");
+      url.className = "mt-2 text-xs text-teal-300 break-all";
+      url.textContent = c.url || "";
+
+      a.appendChild(title);
+      a.appendChild(sub);
+      a.appendChild(url);
+      grid.appendChild(a);
+    });
+
+    turn.appendChild(grid);
+  }
+
+  function renderLeadForm(turn, action) {
+    if (!action || action.type !== "lead_form") return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "rounded-2xl border border-white/10 bg-black/20 p-4";
+
+    const h = document.createElement("div");
+    h.className = "text-sm text-white font-semibold";
+    h.textContent = "Share your details";
+    wrap.appendChild(h);
+
+    const p = document.createElement("div");
+    p.className = "mt-1 text-xs text-slate-300";
+    p.textContent = "Enter name + email to continue.";
+    wrap.appendChild(p);
+
+    const name = document.createElement("input");
+    name.className = "mt-3 w-full rounded-xl px-3 py-2 bg-black/30 border border-white/10 text-white focus:outline-none focus:border-teal-500";
+    name.placeholder = "Name";
+
+    const email = document.createElement("input");
+    email.className = "mt-2 w-full rounded-xl px-3 py-2 bg-black/30 border border-white/10 text-white focus:outline-none focus:border-teal-500";
+    email.placeholder = "Email";
+    email.type = "email";
+
+    const btn = document.createElement("button");
+    btn.className = "mt-3 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white";
+    btn.textContent = action.cta || "Continue";
+
+    btn.addEventListener("click", async () => {
+      const n = (name.value || "").trim();
+      const e = (email.value || "").trim();
+      if (!n || !e) {
+        const t = createBotTurn();
+        addBotBubble(t, "Please enter both name and email.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Submitting…";
+
+      await postToChat({
+        session_id: sessionId,
+        message: "__continue__",
+        lead: { name: n, email: e }
+      });
+
+      name.disabled = true;
+      email.disabled = true;
+      btn.textContent = "Submitted";
+    });
+
+    wrap.appendChild(name);
+    wrap.appendChild(email);
+    wrap.appendChild(btn);
+
+    turn.appendChild(wrap);
+  }
+
+  function setDebug(debug) {
+    if (!debug) {
+      dbgRoute.textContent = "—";
+      dbgEvidence.textContent = "—";
       dbgActions.textContent = "—";
       return;
     }
+    dbgRoute.textContent = debug.route || "—";
 
-    // intents are objects like {type, roles, query}
-    const intents = (resp.debug?.intents || [])
-      .map(i => {
-        const roles = (i.roles || []).join("/");
-        return roles ? `${i.type} → ${roles}` : i.type;
-      })
-      .join(", ");
-
-    dbgIntents.textContent = intents || "—";
-
-    const ev = resp.debug?.evidence || [];
-    dbgCitations.textContent = ev.length
-      ? ev.map(e => `${e.kind}: ${(e.url || e.title || e.meta?.source_name || "").slice(0, 60)}`).join(" | ")
+    const ev = debug.evidence || [];
+    dbgEvidence.textContent = ev.length
+      ? ev.map(e => `${e.kind || "item"}: ${(e.title || e.url || "—").slice(0, 80)}`).join(" | ")
       : "—";
 
-    const acts = resp.actions || [];
+    const acts = debug.actions || [];
     dbgActions.textContent = acts.length
-      ? acts.map(a => `${a.type}${a.reason ? ` (${a.reason})` : ""}`).join(" | ")
+      ? acts.map(a => `${a.type}${a.reason ? " ("+a.reason+")" : ""}`).join(" | ")
       : "—";
   }
 
-  // CSRF
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -166,20 +286,23 @@
   }
   const csrftoken = getCookie("csrftoken");
 
-  // Greeting on load
-  (function initGreeting() {
+  function bootFreshSession() {
+    sessionId = newSessionId();
+    shownCardUrls.clear();
+    chatBody.innerHTML = "";
+    setDebug(null);
+
     const greeting = `{{ agent.greeting_message|default:"Hi! How can I help?"|escapejs }}`;
-    addBubble("bot", greeting);
-  })();
+    const t = createBotTurn();
+    addBotBubble(t, greeting);
+  }
 
-  async function sendMessage() {
-    const text = (chatInput.value || "").trim();
-    if (!text) return;
+  newSessionBtn.addEventListener("click", bootFreshSession);
 
-    const session_id = getSessionId();
+  // IMPORTANT: for testing, always start fresh on load
+  bootFreshSession();
 
-    addBubble("user", text);
-    chatInput.value = "";
+  async function postToChat(bodyObj) {
     statusLine.textContent = "Thinking…";
     setDebug(null);
 
@@ -193,30 +316,62 @@
           "X-Requested-With": "XMLHttpRequest",
           "Accept": "application/json",
         },
-        body: JSON.stringify({
-          session_id: session_id,
-          message: text
-        }),
+        body: JSON.stringify(bodyObj),
       });
 
       const data = await resp.json();
 
       if (!resp.ok || !data.ok) {
-        addBubble("bot", data.error || "Something went wrong.");
+        const t = createBotTurn();
+        addBotBubble(t, data.error || "Something went wrong.");
         statusLine.textContent = "";
         return;
       }
 
-      // if server rotates/returns session_id, keep it
-      if (data.session_id) localStorage.setItem(SESSION_KEY, data.session_id);
+      // keep server session id if it returns one
+      if (data.session_id) sessionId = data.session_id;
 
-      addBubble("bot", data.answer || "");
-      setDebug(data.debug || null);
+      const turn = createBotTurn();
+
+      const msgs = data.messages || [];
+      if (msgs.length) {
+        msgs.forEach(m => {
+          if (m.type === "text" && m.text) addBotBubble(turn, m.text);
+        });
+      } else if (data.answer) {
+        addBotBubble(turn, data.answer);
+      }
+
+      renderCards(turn, data.cards || []);
+
+      const actions = data.actions || [];
+      const leadAction = actions.find(a => a.type === "lead_form");
+      if (leadAction) renderLeadForm(turn, leadAction);
+
+      // debug
+      const dbg = data.debug || {};
+      dbg.actions = actions || [];
+      setDebug(dbg);
+
       statusLine.textContent = "";
     } catch (e) {
-      addBubble("bot", "Network/Server error.");
+      const t = createBotTurn();
+      addBotBubble(t, "Network/Server error.");
       statusLine.textContent = "";
     }
+  }
+
+  async function sendMessage() {
+    const text = (chatInput.value || "").trim();
+    if (!text) return;
+
+    addUserBubble(text);
+    chatInput.value = "";
+
+    await postToChat({
+      session_id: sessionId,
+      message: text
+    });
   }
 
   sendBtn.addEventListener("click", sendMessage);
