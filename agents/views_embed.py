@@ -1,6 +1,6 @@
 # agents/views_embed.py
 import json
-from urllib.parse import urlparse
+import uuid
 
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -11,20 +11,32 @@ from agents.models import Agent, Conversation, Message
 from agents.services.chat_runtime import chat_answer
 
 
+def _safe_json(request):
+    try:
+        return json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return None
+
+
 # -------------------------
 # CORS helpers (for embed)
 # -------------------------
-def _corsify(resp: HttpResponse) -> HttpResponse:
-    # For public embed we allow all origins (you can restrict later by saving allowed domains per agent)
+def _corsify(resp: HttpResponse, request=None) -> HttpResponse:
     resp["Access-Control-Allow-Origin"] = "*"
     resp["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    resp["Access-Control-Allow-Headers"] = "Content-Type, Accept"
+
+    # Respect browser preflight requested headers if present
+    req_hdrs = ""
+    if request is not None:
+        req_hdrs = request.headers.get("Access-Control-Request-Headers", "") or ""
+
+    resp["Access-Control-Allow-Headers"] = req_hdrs if req_hdrs else "Content-Type, Accept"
     resp["Access-Control-Max-Age"] = "86400"
     return resp
 
 
-def _options_ok() -> HttpResponse:
-    return _corsify(HttpResponse("", status=200))
+def _options_ok(request) -> HttpResponse:
+    return _corsify(HttpResponse("", status=200), request=request)
 
 
 # -------------------------
@@ -33,7 +45,7 @@ def _options_ok() -> HttpResponse:
 @require_http_methods(["GET", "OPTIONS"])
 def agent_embed_config(request, public_id):
     if request.method == "OPTIONS":
-        return _options_ok()
+        return _options_ok(request)
 
     agent = get_object_or_404(Agent, public_id=public_id, is_active=True)
 
@@ -60,7 +72,7 @@ def agent_embed_config(request, public_id):
             "text_color": agent.text_color,
         },
     }
-    return _corsify(JsonResponse(data))
+    return _corsify(JsonResponse(data), request=request)
 
 
 # -------------------------
@@ -70,55 +82,66 @@ def agent_embed_config(request, public_id):
 @require_http_methods(["POST", "OPTIONS"])
 def agent_embed_chat(request, public_id):
     if request.method == "OPTIONS":
-        return _options_ok()
+        return _options_ok(request)
 
+    payload = _safe_json(request)
+    if payload is None:
+        return _corsify(JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400), request=request)
+
+    # ✅ IMPORTANT: use the exact same lookup rules as config
     agent = get_object_or_404(Agent, public_id=public_id, is_active=True)
-
-    try:
-        payload = json.loads(request.body.decode("utf-8") or "{}")
-    except Exception:
-        return _corsify(JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400))
 
     session_id = (payload.get("session_id") or payload.get("sessionId") or "").strip()[:80]
     message = (payload.get("message") or payload.get("text") or "").strip()
     pending_question = (payload.get("pending_question") or "").strip()
 
     if not session_id:
-        # embed must send this; fallback to something deterministic-ish
-        session_id = f"embed_{public_id}"
+        session_id = str(uuid.uuid4())
 
     convo, _ = Conversation.objects.get_or_create(agent=agent, session_id=session_id)
     state = convo.state or {}
 
-    # Persist lead if submitted
+    # Mark channel + origin for analytics
+    state.setdefault("channel", "embed")
+    origin = request.headers.get("Origin") or ""
+    referer = request.headers.get("Referer") or ""
+    if origin:
+        state["origin"] = origin
+    if referer:
+        state["referer"] = referer
+
+    # Persist lead if supplied
     incoming_lead = payload.get("lead") or {}
     lead_name = (incoming_lead.get("name") or "").strip()
     lead_email = (incoming_lead.get("email") or "").strip()
+
     if lead_name and lead_email:
         state["lead"] = {"name": lead_name, "email": lead_email}
         state.pop("pending_question", None)
         state.pop("pending_reason", None)
-        convo.state = state
-        convo.save(update_fields=["state", "updated_at"])
+
+    convo.state = state
+    convo.save(update_fields=["state", "updated_at"])
 
     stored_lead = (convo.state or {}).get("lead") or {}
 
-    # "__continue__" replays the stored pending question after lead submit
+    # Continue flow (after lead submit)
     if message == "__continue__":
         message = pending_question or (state.get("pending_question") or "")
         message = (message or "").strip()
 
     if not message:
-        return _corsify(JsonResponse({"ok": False, "error": "message is required"}, status=400))
+        return _corsify(JsonResponse({"ok": False, "error": "message is required"}, status=400), request=request)
 
     # Log user message
     Message.objects.create(
         conversation=convo,
         role="user",
         content=message,
-        meta={"lead": stored_lead},
+        meta={"lead": stored_lead, "channel": "embed"},
     )
 
+    # Run brain
     try:
         result = chat_answer(
             agent=agent,
@@ -126,46 +149,43 @@ def agent_embed_chat(request, public_id):
             lead=stored_lead,
             max_intents=2,
         )
-
-        # If lead form required and we don’t have lead yet, store pending
-        actions = result.get("actions") or []
-        lead_action = next((a for a in actions if a.get("type") == "lead_form"), None)
-        if lead_action and not stored_lead:
-            state = convo.state or {}
-            state["pending_question"] = message
-            state["pending_reason"] = lead_action.get("reason") or "lead_gen"
-            convo.state = state
-            convo.save(update_fields=["state", "updated_at"])
-
-        resp = {"ok": True, "session_id": session_id, **result}
-
-        Message.objects.create(
-            conversation=convo,
-            role="assistant",
-            content=(resp.get("answer") or "")[:4000],
-            meta={"debug": resp.get("debug", {})},
-        )
-
-        return _corsify(JsonResponse(resp))
-
     except Exception as e:
-        return _corsify(JsonResponse({"ok": False, "error": str(e)[:300]}, status=500))
+        return _corsify(JsonResponse({"ok": False, "error": str(e)[:300]}, status=500), request=request)
+
+    # If lead form required, store pending question
+    actions = result.get("actions") or []
+    lead_action = next((a for a in actions if a.get("type") == "lead_form"), None)
+    if lead_action and not stored_lead:
+        state = convo.state or {}
+        state["pending_question"] = message
+        state["pending_reason"] = lead_action.get("reason") or "lead_gen"
+        convo.state = state
+        convo.save(update_fields=["state", "updated_at"])
+
+    resp = {"ok": True, "session_id": session_id, **result}
+
+    # Log assistant
+    Message.objects.create(
+        conversation=convo,
+        role="assistant",
+        content=(resp.get("answer") or "")[:4000],
+        meta={"debug": resp.get("debug", {}), "channel": "embed"},
+    )
+
+    return _corsify(JsonResponse(resp), request=request)
 
 
 # -------------------------
-# Embed JS (creates UI + uses absolute endpoints)
+# Embed JS
 # -------------------------
 @require_http_methods(["GET"])
 def agent_embed_js(request, public_id):
-    # IMPORTANT: we do NOT 404 here for drafts — script can load but config/chat will 404 unless active.
-    # This makes debugging easier.
     base = f"{request.scheme}://{request.get_host()}"
     public_id_str = str(public_id)
 
     js = f"""
 (function() {{
   const PUBLIC_ID = "{public_id_str}";
-  // Derive server origin from THIS script tag src (works even when embedded on other domains)
   const scriptEl = document.currentScript || (function() {{
     const s = document.getElementsByTagName('script');
     return s[s.length - 1];
@@ -190,7 +210,6 @@ def agent_embed_js(request, public_id):
     return sid;
   }}
 
-  // ---------- Base styles (isolated-ish) ----------
   const style = document.createElement("style");
   style.textContent = `
     .mira-root, .mira-root * {{ box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }}
@@ -227,9 +246,7 @@ def agent_embed_js(request, public_id):
       height: calc(100% - 54px - 62px);
       overflow: auto;
     }}
-    .mira-row {{
-      display: flex; margin-bottom: 10px;
-    }}
+    .mira-row {{ display: flex; margin-bottom: 10px; }}
     .mira-row.user {{ justify-content: flex-end; }}
     .mira-bubble {{
       max-width: 82%;
@@ -319,7 +336,6 @@ def agent_embed_js(request, public_id):
   `;
   document.head.appendChild(style);
 
-  // ---------- DOM ----------
   const root = document.createElement("div");
   root.className = "mira-root";
   document.body.appendChild(root);
@@ -371,9 +387,7 @@ def agent_embed_js(request, public_id):
     bub.textContent = text || "";
     row.appendChild(bub);
 
-    // theme colors set later
-    if (who === "user") bub.dataset.kind = "user";
-    else bub.dataset.kind = "bot";
+    bub.dataset.kind = (who === "user") ? "user" : "bot";
 
     body.appendChild(row);
     body.scrollTop = body.scrollHeight;
@@ -381,7 +395,6 @@ def agent_embed_js(request, public_id):
 
   function renderCards(cards) {{
     if (!cards || !cards.length) return;
-
     const wrap = document.createElement("div");
     wrap.className = "mira-cards";
 
@@ -460,7 +473,6 @@ def agent_embed_js(request, public_id):
     body.scrollTop = body.scrollHeight;
   }}
 
-  // ---------- Theme + config ----------
   let THEME = {{
     title_bar_color: "#0F172A",
     window_bg_color: "#020617",
@@ -477,11 +489,11 @@ def agent_embed_js(request, public_id):
     header.style.background = THEME.title_bar_color;
     send.style.background = THEME.bot_bubble_color;
 
-    // Update existing bubbles
     body.querySelectorAll(".mira-bubble").forEach(b => {{
       const kind = b.dataset.kind;
-      if (kind === "user") b.style.background = THEME.user_bubble_color;
-      else b.style.background = "color-mix(in oklab, " + THEME.bot_bubble_color + " 18%, transparent)";
+      b.style.background = (kind === "user")
+        ? THEME.user_bubble_color
+        : ("color-mix(in oklab, " + THEME.bot_bubble_color + " 18%, transparent)");
       b.style.color = THEME.text_color;
     }});
   }}
@@ -492,15 +504,13 @@ def agent_embed_js(request, public_id):
       const data = await r.json();
       if (!r.ok || !data.ok) throw new Error(data.error || "config error");
 
-      const theme = data.theme || {{}};
-      THEME = Object.assign(THEME, theme);
+      THEME = Object.assign(THEME, data.theme || {{}});
       applyTheme();
 
       const agent = data.agent || {{}};
       headerTitle.textContent = agent.name || "Chat";
       const iconUrl = agent.icon_url || "";
 
-      // launcher icon
       launcher.innerHTML = "";
       if (iconUrl) {{
         const img = document.createElement("img");
@@ -514,11 +524,9 @@ def agent_embed_js(request, public_id):
         launcher.textContent = "💬";
       }}
 
-      // greeting
       addBubble("bot", agent.greeting_message || "Hi! How can I help?");
       applyTheme();
     }} catch (e) {{
-      // If agent is not active, config will 404. Show minimal UX.
       launcher.textContent = "💬";
       headerTitle.textContent = "Chat";
       applyTheme();
@@ -526,7 +534,6 @@ def agent_embed_js(request, public_id):
     }}
   }}
 
-  // ---------- Chat ----------
   async function postToChat(bodyObj) {{
     try {{
       const r = await fetch(CHAT_URL, {{
@@ -548,7 +555,6 @@ def agent_embed_js(request, public_id):
         return;
       }}
 
-      // Render bot messages
       const msgs = data.messages || [];
       if (msgs.length) {{
         msgs.forEach(m => {{
@@ -558,10 +564,8 @@ def agent_embed_js(request, public_id):
         addBubble("bot", data.answer);
       }}
 
-      // Cards + lead form
       renderCards(data.cards || []);
-      const actions = data.actions || [];
-      const leadAction = actions.find(a => a.type === "lead_form");
+      const leadAction = (data.actions || []).find(a => a.type === "lead_form");
       if (leadAction) renderLeadForm(leadAction);
 
       applyTheme();
@@ -574,6 +578,7 @@ def agent_embed_js(request, public_id):
   function sendMessage() {{
     const txt = (input.value || "").trim();
     if (!txt) return;
+
     addBubble("user", txt);
     applyTheme();
     input.value = "";
@@ -590,11 +595,13 @@ def agent_embed_js(request, public_id):
   }});
 
   launcher.addEventListener("click", () => {{
-    const open = panel.style.display === "block";
-    panel.style.display = open ? "none" : "block";
+    panel.style.display = (panel.style.display === "block") ? "none" : "block";
   }});
 
   loadConfig();
 }})();
 """
-    return HttpResponse(js, content_type="application/javascript; charset=utf-8")
+    resp = HttpResponse(js, content_type="application/javascript; charset=utf-8")
+    # Helps during development so you don’t fight caching
+    resp["Cache-Control"] = "no-store"
+    return resp

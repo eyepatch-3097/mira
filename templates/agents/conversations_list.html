@@ -1,0 +1,91 @@
+{% extends "accounts/app_base.html" %}
+{% block title %}Mira — Conversations{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Conversations</h1>
+      <div class="text-sm text-slate-400">All chat sessions across your bots.</div>
+    </div>
+    <a href="{% url 'agent_list' %}" class="text-sm text-slate-400 hover:text-white">← Back to agents</a>
+  </div>
+
+  <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-4">
+    <form method="get" class="flex flex-col md:flex-row gap-2 md:items-center">
+      <select name="agent" class="rounded-xl px-3 py-2 bg-black/20 border border-white/10 text-slate-200">
+        <option value="">All agents</option>
+        {% for a in agents %}
+          <option value="{{ a.id }}" {% if selected_agent == a.id|stringformat:"s" %}selected{% endif %}>
+            {{ a.name }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <input name="q"
+             value="{{ q }}"
+             placeholder="Search by agent name or session id…"
+             class="flex-1 rounded-xl px-3 py-2 bg-black/20 border border-white/10 text-slate-200" />
+
+      <button class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-medium">
+        Filter
+      </button>
+    </form>
+
+    <div class="mt-4 space-y-3">
+      {% for c in page_obj.object_list %}
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-white font-semibold truncate">{{ c.agent.name }}</div>
+              <div class="text-xs text-slate-400 truncate">{{ c.agent.description|default:"—" }}</div>
+
+              <div class="mt-2 text-xs text-slate-300 break-all">
+                <span class="text-slate-500">Session:</span> {{ c.session_id }}
+              </div>
+
+              <div class="mt-1 text-xs text-slate-400">
+                <span class="text-slate-500">Last activity:</span> {{ c.updated_at|date:"d M Y, H:i" }}
+              </div>
+
+              {% with lead=c.state.lead %}
+                {% if lead and lead.name and lead.email %}
+                  <div class="mt-2 text-xs text-slate-200">
+                    <span class="text-slate-500">Lead:</span>
+                    {{ lead.name }} — <span class="text-slate-300 break-all">{{ lead.email }}</span>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+
+            <div class="shrink-0">
+              <a href="{% url 'conversation_detail' c.id %}"
+                 class="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white">
+                Open →
+              </a>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-slate-400 py-6">No conversations yet.</div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="mt-4 flex items-center justify-between text-sm text-slate-300">
+        <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+        <div class="flex gap-2">
+          {% if page_obj.has_previous %}
+            <a class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15"
+               href="?page={{ page_obj.previous_page_number }}&agent={{ selected_agent }}&q={{ q|urlencode }}">Prev</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15"
+               href="?page={{ page_obj.next_page_number }}&agent={{ selected_agent }}&q={{ q|urlencode }}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

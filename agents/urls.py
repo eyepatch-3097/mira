@@ -5,6 +5,7 @@ from agents.views_chat import agent_chat_api
 from agents.views_lead import agent_lead_submit, doc_download_by_token
 from agents.views_deploy import agent_deploy, agent_activate, agent_deactivate
 from agents.views_embed import agent_embed_js, agent_embed_config, agent_embed_chat
+from agents.views_conversations import conversations_list, conversation_detail
 
 urlpatterns = [
     path("new/", views.agent_new, name="agent_new"),
@@ -22,4 +23,6 @@ urlpatterns = [
     path("embed/<uuid:public_id>.js", agent_embed_js, name="agent_embed_js"),
     path("embed/<uuid:public_id>/config/", agent_embed_config, name="agent_embed_config"),
     path("embed/<uuid:public_id>/chat/", agent_embed_chat, name="agent_embed_chat"),
+    path("conversations/", conversations_list, name="conversations_list"),
+    path("conversations/<int:convo_id>/", conversation_detail, name="conversation_detail"),
 ]
