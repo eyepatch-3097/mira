@@ -7,6 +7,7 @@ from agents.views_deploy import agent_deploy, agent_activate, agent_deactivate
 from agents.views_embed import agent_embed_js, agent_embed_config, agent_embed_chat
 from agents.views_conversations import conversations_list, conversation_detail
 
+
 urlpatterns = [
     path("new/", views.agent_new, name="agent_new"),
     path("<int:agent_id>/", views.agent_detail, name="agent_detail"),

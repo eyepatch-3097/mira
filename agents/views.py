@@ -1,4 +1,5 @@
 # agents/views.py
+from __future__ import annotations
 import json
 import uuid
 from django.http import JsonResponse
@@ -16,6 +17,14 @@ from sources.models import DataSource
 from agents.services.indexer import rebuild_agent_index
 from agents.services.chat_runtime import chat_answer
 from collections import defaultdict
+
+from datetime import datetime, timedelta, time
+from collections import Counter
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+from django.apps import apps
 
 ROLE_ALLOWED_TYPES = {
     "website_guidance": {"website", "custom"},

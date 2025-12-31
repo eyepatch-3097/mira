@@ -1,3 +1,4 @@
+from __future__ import annotations
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required
@@ -5,6 +6,16 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from .forms import SignupForm, ProfileUpdateForm
 from landing.tracking import log_pageview  # we’ll create this in section D
+from agents.models import Agent, Conversation, Message
+
+from datetime import datetime, timedelta, time
+from collections import Counter
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+from django.apps import apps
 
 class MiraLoginView(LoginView):
     template_name = "accounts/login.html"
@@ -38,8 +49,9 @@ def signup(request):
 
 @login_required
 def dashboard(request):
+    agents = Agent.objects.filter(user=request.user).order_by("-created_at")
     log_pageview(request, path="/dashboard/")
-    return render(request, "accounts/dashboard.html")
+    return render(request, "accounts/dashboard.html", {"agents": agents})
 
 @login_required
 def edit_profile(request):
@@ -62,3 +74,4 @@ def data_sources(request):
     log_pageview(request, path="/data-sources/")
     selected = request.GET.get("type", "")
     return render(request, "accounts/data_sources.html", {"selected": selected})
+
