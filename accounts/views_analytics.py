@@ -11,8 +11,8 @@ from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
-
-from agents.models import Agent, Conversation, Message
+from django.core.exceptions import FieldDoesNotExist
+from agents.models import Agent, Conversation, Message, AgentDataSource
 
 
 def _parse_date(s: str | None) -> date | None:
@@ -39,21 +39,30 @@ def _range_bounds(start_d: date | None, end_d: date | None):
     return start_d, end_d, start_dt, end_dt
 
 
+def _model_has_field(model, field_name: str) -> bool:
+    try:
+        model._meta.get_field(field_name)
+        return True
+    except FieldDoesNotExist:
+        return False
+
+
 def _count_sources_for_agents(agent_qs):
-    # Try common M2M relationship names on Agent
-    for rel in ["sources", "data_sources", "knowledge_sources"]:
-        try:
-            return (
-                agent_qs.values_list(f"{rel}__id", flat=True)
-                .exclude(**{f"{rel}__id": None})
-                .distinct()
-                .count()
-            )
-        except FieldError:
-            continue
-        except Exception:
-            continue
-    return 0
+    """
+    Counts distinct DataSource(s) linked to these agents via AgentDataSource.
+    Only counts active sources if DataSource has is_active field.
+    """
+    qs = AgentDataSource.objects.filter(agent__in=agent_qs)
+
+    # If DataSource has is_active, count only active sources
+    try:
+        ds_model = AgentDataSource._meta.get_field("source").remote_field.model
+        if ds_model and _model_has_field(ds_model, "is_active"):
+            qs = qs.filter(source__is_active=True)
+    except Exception:
+        pass
+
+    return qs.values("source_id").distinct().count()
 
 
 def _extract_intent_types_from_meta(meta: dict) -> list[str]:
