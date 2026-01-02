@@ -1,254 +1,519 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Mira{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mira{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Oranienbaum&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind (for utility classes) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['Inter', 'sans-serif'],
-                },
-                colors: {
-                    brand: {
-                        500: '#14b8a6', // Teal primary
-                        600: '#0d9488',
-                    },
-                    dark: {
-                        900: '#0f172a', // Slate 900
-                        800: '#1e293b', // Slate 800
-                        700: '#334155',
-                    }
-                },
-                animation: {
-                    'blob': 'blob 7s infinite',
-                    'fadeIn': 'fadeIn 0.5s ease-out',
-                },
-                keyframes: {
-                    blob: {
-                        '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                        '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                        '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                        '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                    },
-                    fadeIn: {
-                        '0%': { opacity: '0', transform: 'translateY(10px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
-                    }
-                }
+    <style>
+        /* --- LUMINA DESIGN TOKENS --- */
+        :root {
+            /* Palette */
+            --primary-hue: 260;
+            --primary: hsl(var(--primary-hue), 90%, 65%);
+            --primary-pop: hsl(var(--primary-hue), 100%, 75%);
+            --secondary: #22d3ee;
+            --accent: #fb7185;
+            
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            --gradient-fun: linear-gradient(135deg, #22d3ee 0%, #818cf8 100%);
+            --gradient-text: linear-gradient(135deg, #1e293b 0%, #7e22ce 100%);
+            
+            /* Surface */
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.05),
+                0 10px 15px -3px rgba(168, 85, 247, 0.1),
+                inset 0 0 0 1px rgba(255,255,255,0.5);
+            
+            /* Typography */
+            --font-body: 'IBM Plex Mono', monospace;
+            --font-heading: 'Oranienbaum', serif;
+            --text-main: #000000; /* Dark black for better visibility */
+            --text-muted: #475569; /* Darker muted tone */
+
+            /* Spacing */
+            --radius-md: 16px;
+            --radius-lg: 28px;
+            --radius-pill: 9999px;
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 80px;
+
+            /* Motion */
+            --bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+            --smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- GLOBAL RESET --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-color: #f8fafc;
+            /* Aurora Background */
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,0.05) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,0.05) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.15), transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(34, 211, 238, 0.15), transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.08), transparent 60%);
+            background-attachment: fixed;
+        }
+
+        /* --- LAYOUT STRUCTURE --- */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            z-index: 50;
+            transition: width 0.4s var(--bounce);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        /* Logo Area */
+        .sidebar-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 80px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .brand-logo img {
+            height: 32px;
+            width: auto;
+        }
+
+        /* Toggle Button */
+        .sidebar-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.2s;
+            display: grid;
+            place-items: center;
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--primary);
+        }
+
+        /* Navigation */
+        .nav-list {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-md);
+            color: var(--text-main); /* High visibility text */
+            text-decoration: none;
+            transition: all 0.2s var(--smooth);
+            white-space: nowrap;
+            overflow: hidden;
+            position: relative;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: #e0f2fe; /* Light bluish background on hover */
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            font-size: 1.25rem;
+            min-width: 24px;
+            display: grid;
+            place-items: center;
+        }
+
+        .nav-label {
+            font-size: 0.95rem;
+            opacity: 1;
+            transition: opacity 0.2s;
+        }
+        
+        .nav-desc {
+            display: block;
+            font-size: 0.75rem;
+            opacity: 0.7;
+            font-weight: 400;
+            margin-top: 2px;
+            color: var(--text-muted);
+        }
+
+        .sidebar.collapsed .nav-label {
+            opacity: 0;
+            display: none;
+        }
+        
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 0.875rem 0;
+        }
+        
+        .sidebar.collapsed .nav-item:hover {
+            transform: none;
+            background: #e0f2fe;
+        }
+
+        /* User Profile (Bottom) */
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            overflow: hidden;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .user-info {
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+        
+        .sidebar.collapsed .user-info {
+            opacity: 0;
+            display: none;
+        }
+        
+        .user-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            transition: margin-left 0.4s var(--bounce);
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        .sidebar.collapsed ~ .main-content {
+            margin-left: var(--sidebar-collapsed-width);
+            width: calc(100% - var(--sidebar-collapsed-width));
+        }
+
+        /* --- MOBILE OVERLAY --- */
+        .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px);
+            z-index: 40;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        /* Mobile Responsive Logic */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: var(--sidebar-width); /* Always full width on mobile when open */
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .sidebar.collapsed {
+                 /* Disable collapsed state logic on mobile, strictly open/close */
+                width: var(--sidebar-width);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding: 1rem;
+            }
+            
+            .mobile-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            
+            /* Add a mobile header trigger */
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1rem;
+                background: var(--glass-bg);
+                backdrop-filter: blur(10px);
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                border-bottom: 1px solid var(--glass-border);
+                margin: -1rem -1rem 1rem -1rem; /* Negative margins to touch edges */
             }
         }
-    }
-  </script>
+        
+        @media (min-width: 769px) {
+            .mobile-header { display: none; }
+        }
 
-  <style>
-    /* Glassmorphism Card */
-    .glass {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    /* Navigation Link Styles */
-    .nav-link {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        border-radius: 0.75rem;
-        padding: 0.75rem 1rem;
-        border: 1px solid transparent;
-        transition: all 0.2s ease;
-    }
-
-    .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.05);
-    }
-
-    /* Active State Logic */
-    .nav-link.active {
-        background-color: rgba(20, 184, 166, 0.1); /* brand-500/10 */
-        border-color: rgba(20, 184, 166, 0.3); /* brand-500/30 */
-    }
-    
-    .nav-link.active .icon-box {
-        color: #14b8a6; /* brand-500 */
-        background-color: rgba(20, 184, 166, 0.2);
-    }
-
-    .nav-link.active .link-title {
-        color: white;
-    }
-
-    /* Icon Box styling */
-    .icon-box {
-        width: 2.25rem;
-        height: 2.25rem;
-        border-radius: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #94a3b8; /* slate-400 */
-        transition: all 0.2s;
-    }
-
-    .nav-link:hover .icon-box {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-  </style>
+    </style>
 </head>
+<body>
 
-<body class="bg-dark-900 text-slate-300 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white overflow-x-hidden">
+    <!-- Ambient Blobs -->
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none;">
+        <div style="position: absolute; top: -10%; left: -10%; width: 500px; height: 500px; background: linear-gradient(135deg, var(--primary-pop), var(--secondary)); filter: blur(80px); opacity: 0.4; border-radius: 50%;"></div>
+        <div style="position: absolute; bottom: -10%; right: -10%; width: 400px; height: 400px; background: linear-gradient(135deg, var(--accent), #fbbf24); filter: blur(80px); opacity: 0.4; border-radius: 50%;"></div>
+    </div>
 
-  <!-- Ambient Background Glows -->
-  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-      <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
-      <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-teal-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
-  </div>
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
 
-  <div class="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fadeIn">
-
-      <!-- Sidebar -->
-      <aside class="lg:col-span-4 lg:sticky lg:top-8 h-fit">
-        <div class="glass rounded-2xl p-6 shadow-xl">
-          
-          <!-- User Profile Summary -->
-          <div class="flex items-center gap-4 mb-8 pb-8 border-b border-white/10">
-            {% if request.user.profile.avatar %}
-              <img src="{{ request.user.profile.avatar.url }}" class="w-14 h-14 rounded-full object-cover border-2 border-brand-500/30 p-0.5 bg-dark-800" alt="avatar">
-            {% else %}
-              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center font-bold text-white text-xl shadow-lg border border-white/10">
-                {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
-              </div>
-            {% endif %}
-            <div class="min-w-0">
-              <div class="font-semibold text-white truncate text-lg">
-                {{ request.user.first_name|default:request.user.username }} {{ request.user.last_name }}
-              </div>
-              <div class="text-sm text-slate-400 truncate flex items-center gap-1.5">
-                <i class="fa-regular fa-envelope text-xs"></i> {{ request.user.email }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Navigation Links -->
-          <div class="space-y-2">
-            
-            <!-- Dashboard -->
-            <a href="/dashboard/" 
-               class="nav-link group {% if request.path == '/dashboard/' %}active{% endif %}">
-              <div class="icon-box">
-                <i class="fa-solid fa-chart-pie"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Dashboard</div>
-                <div class="text-xs text-slate-500">Overview & insights</div>
-              </div>
-            </a>
-
-            <!-- Add Data Sources -->
-            <a href="/data-sources/"
-               class="nav-link group {% if request.path|slice:':13' == '/data-sources' %}active{% endif %}">
-               <div class="icon-box">
-                <i class="fa-solid fa-database"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Add Data Sources</div>
-                <div class="text-xs text-slate-500">Websites, docs, sheets</div>
-              </div>
-            </a>
-
-            <a href="/sources/"
-               class="nav-link group {% if request.path|slice:':8' == '/sources' %}active{% endif %}">
-               <div class="icon-box">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Source History</div>
-                <div class="text-xs text-slate-500">AI Summarized Source History</div>
-              </div>
-            </a>
-
-            <!-- Edit Profile -->
-            <a href="/profile/edit/"
-               class="nav-link group {% if request.path|slice:':13' == '/profile/edit' %}active{% endif %}">
-               <div class="icon-box">
-                <i class="fa-solid fa-user-pen"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Edit Profile</div>
-                <div class="text-xs text-slate-500">Avatar, company info</div>
-              </div>
-            </a>
-
-            <!-- Create Agent -->
-            <a href="/agents/new"
-               class="nav-link group {% if request.path == '/agents/new/' %}active{% endif %}">
-               <div class="icon-box">
-                <i class="fa-solid fa-robot"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Create Agent</div>
-                <div class="text-xs text-slate-500">AI Agent Build & Deploy</div>
-              </div>
-            </a>
-
-            <!-- Agent History -->
-            <a href="{% url 'agent_list' %}"
-               class="nav-link group {% if request.path == '/agents/' %}active{% endif %}">
-               <div class="icon-box">
-                <i class="fa-solid fa-hive"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Your Agents</div>
-                <div class="text-xs text-slate-500">AI Agent Log</div>
-              </div>
-            </a>
-
-            <!-- Conversation History -->
-            <a href="{% url 'conversations_list' %}"
-               class="nav-link group {% if request.path == '/agents/conversations/' %}active{% endif %}">
-               <div class="icon-box">
-                <i class="fa-solid fa-hive"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-slate-200 link-title group-hover:text-white transition-colors">Conversations</div>
-                <div class="text-xs text-slate-500">Chat History</div>
-              </div>
-            </a>
-
-            <!-- Logout -->
-            <div class="pt-4 mt-4 border-t border-white/5">
-                <a href="/logout/" class="nav-link group hover:bg-red-500/10 hover:border-red-500/20">
-                    <div class="icon-box group-hover:text-red-400 group-hover:bg-red-500/20">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    </div>
-                    <div class="font-semibold text-slate-400 group-hover:text-red-300 transition-colors">Logout</div>
+    <div class="app-layout">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="brand-logo">
+                    <img src="https://res.cloudinary.com/do7w7isgi/image/upload/v1767290704/mira_pewimz.png" alt="Mira">
                 </a>
+                <button class="sidebar-toggle" onclick="toggleSidebarDesktop()">
+                    <i class="ph-bold ph-caret-left" id="toggleIcon"></i>
+                </button>
             </div>
 
-          </div>
-        </div>
-      </aside>
+            <nav class="nav-list">
+                
+                <!-- Dashboard -->
+                <a href="/dashboard/" class="nav-item {% if request.path == '/dashboard/' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-chart-pie-slice"></i></span>
+                    <span class="nav-label">
+                        Dashboard
+                        <span class="nav-desc">Overview & insights</span>
+                    </span>
+                </a>
 
-      <!-- Main Content Area -->
-      <main class="lg:col-span-8">
-        {% block content %}{% endblock %}
-      </main>
+                <!-- Data Sources -->
+                <a href="/data-sources/" class="nav-item {% if request.path|slice:':13' == '/data-sources' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-database"></i></span>
+                    <span class="nav-label">
+                        Add Data
+                        <span class="nav-desc">Websites, docs, sheets</span>
+                    </span>
+                </a>
+
+                <!-- Source History -->
+                <a href="/sources/" class="nav-item {% if request.path|slice:':8' == '/sources' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-clock-counter-clockwise"></i></span>
+                    <span class="nav-label">
+                        Source History
+                        <span class="nav-desc">AI Summaries</span>
+                    </span>
+                </a>
+
+                <!-- Edit Profile -->
+                <a href="/profile/edit/" class="nav-item {% if request.path|slice:':13' == '/profile/edit' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-user-gear"></i></span>
+                    <span class="nav-label">
+                        Edit Profile
+                        <span class="nav-desc">Avatar & settings</span>
+                    </span>
+                </a>
+
+                <!-- Divider -->
+                <div style="height: 1px; background: rgba(0,0,0,0.05); margin: 0.5rem 0;"></div>
+
+                <!-- Create Agent -->
+                <a href="/agents/new" class="nav-item {% if request.path == '/agents/new/' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-robot"></i></span>
+                    <span class="nav-label">
+                        Create Agent
+                        <span class="nav-desc">Build & Deploy</span>
+                    </span>
+                </a>
+
+                <!-- Agent List -->
+                <a href="{% url 'agent_list' %}" class="nav-item {% if request.path == '/agents/' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-squares-four"></i></span>
+                    <span class="nav-label">
+                        Your Agents
+                        <span class="nav-desc">Manage deployments</span>
+                    </span>
+                </a>
+
+                <!-- Conversations -->
+                <a href="{% url 'conversations_list' %}" class="nav-item {% if request.path == '/agents/conversations/' %}active{% endif %}">
+                    <span class="nav-icon"><i class="ph-bold ph-chats-circle"></i></span>
+                    <span class="nav-label">
+                        Conversations
+                        <span class="nav-desc">Chat logs</span>
+                    </span>
+                </a>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    {% if request.user.profile.avatar %}
+                        <img src="{{ request.user.profile.avatar.url }}" class="avatar" alt="User">
+                    {% else %}
+                        <div class="avatar" style="display: grid; place-items: center; font-weight: 700; color: var(--text-muted);">
+                            {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="user-info">
+                        <div class="user-name">{{ request.user.first_name|default:request.user.username }}</div>
+                        <a href="/logout/" class="user-role" style="color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 0.25rem;">
+                            Log out <i class="ph-bold ph-sign-out"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mobile Header (Visible only on small screens) -->
+            <div class="mobile-header">
+                <div class="brand-logo">
+                    <img src="https://res.cloudinary.com/do7w7isgi/image/upload/v1767290704/mira_pewimz.png" alt="Mira">
+                </div>
+                <button onclick="toggleSidebar()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-main);">
+                    <i class="ph-bold ph-list"></i>
+                </button>
+            </div>
+
+            {% block content %}{% endblock %}
+        </main>
 
     </div>
-  </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        const toggleIcon = document.getElementById('toggleIcon');
+
+        // Check local storage for desktop state
+        if (localStorage.getItem('sidebar-collapsed') === 'true' && window.innerWidth > 768) {
+            sidebar.classList.add('collapsed');
+            toggleIcon.classList.replace('ph-caret-left', 'ph-caret-right');
+        }
+
+        function toggleSidebarDesktop() {
+            sidebar.classList.toggle('collapsed');
+            
+            // Toggle Icon
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.replace('ph-caret-left', 'ph-caret-right');
+                localStorage.setItem('sidebar-collapsed', 'true');
+            } else {
+                toggleIcon.classList.replace('ph-caret-right', 'ph-caret-left');
+                localStorage.setItem('sidebar-collapsed', 'false');
+            }
+        }
+
+        function toggleSidebar() {
+            // Mobile toggle
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            }
+        }
+        
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                overlay.classList.remove('active');
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
 </body>
 </html>

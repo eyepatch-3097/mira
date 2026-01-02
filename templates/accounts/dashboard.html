@@ -3,102 +3,276 @@
 
 {% block content %}
 <style>
-  #sessionsChart, #intentsChart { width: 100%; height: 260px; }
-</style>
-<div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
-  <h1 class="text-2xl font-bold text-white">
-    Hey, {{ request.user.first_name|default:request.user.username }} 👋
-  </h1>
+  /* Local chart sizing */
+  .chart-container {
+    position: relative; 
+    height: 300px; 
+    width: 100%;
+  }
+  
+  /* Custom overrides for select/date inputs to match Lumina theme */
+  .lumina-input {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+    padding: 0.6rem 1rem;
+    outline: none;
+    transition: all 0.2s var(--bounce);
+  }
+  
+  .lumina-input:focus {
+    background: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+  }
+  
+  /* KPI Card with Gradient Borders */
+  .kpi-card {
+    position: relative;
+    /* Double background trick: inner is glass, outer is gradient */
+    background: 
+      linear-gradient(var(--glass-bg), var(--glass-bg)) padding-box,
+      var(--border-gradient) border-box;
+    border: 2px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    transition: transform 0.3s var(--bounce), box-shadow 0.3s var(--smooth);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 20px -5px rgba(0,0,0,0.05);
+  }
+  
+  /* Specific Gradients */
+  .kpi-purple { --border-gradient: linear-gradient(135deg, #a855f7, #d8b4fe); }
+  .kpi-blue   { --border-gradient: linear-gradient(135deg, #3b82f6, #93c5fd); }
+  .kpi-teal   { --border-gradient: linear-gradient(135deg, #14b8a6, #5eead4); }
+  .kpi-pink   { --border-gradient: linear-gradient(135deg, #ec4899, #fda4af); }
+  .kpi-orange { --border-gradient: linear-gradient(135deg, #f59e0b, #fcd34d); }
+  
+  /* General Card (for charts) uses a subtle border */
+  .chart-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px -5px rgba(0,0,0,0.05);
+  }
 
-  <div class="mt-3 text-sm text-slate-300 space-y-1">
-    <div><span class="text-slate-400">User ID:</span>
-      <code class="text-teal-300">{{ request.user.profile.public_id }}</code>
+  .kpi-card:hover, .chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px -5px rgba(168, 85, 247, 0.15);
+  }
+  
+  .action-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    transition: all 0.3s var(--bounce);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+  }
+  
+  .action-btn-primary {
+    background: var(--text-main);
+    color: white;
+  }
+  .action-btn-primary:hover {
+    background: var(--gradient-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+  }
+  
+  .action-btn-secondary {
+    background: white;
+    color: var(--text-main);
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  .action-btn-secondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+</style>
+
+<!-- Main Dashboard Container -->
+<div class="space-y-8 animate-fadeIn">
+
+  <!-- Header Section -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div>
+      <h1 style="font-family: var(--font-heading); font-size: 3rem; font-weight: 400; line-height: 1; margin-bottom: 0.5rem;">
+        Dashboard
+      </h1>
+      <p class="text-slate-500 font-medium">
+        Welcome back, {{ request.user.first_name|default:request.user.username }} 👋
+      </p>
+      
+      <div class="mt-2 text-xs text-slate-400 flex flex-wrap gap-3 items-center font-mono">
+        <span class="bg-white/50 px-2 py-1 rounded border border-white/60">
+          ID: <code class="text-primary-600 font-bold">{{ request.user.profile.public_id }}</code>
+        </span>
+        {% if request.user.profile.company_name %}
+          <span class="flex items-center gap-1">
+            <i class="ph-bold ph-buildings"></i> {{ request.user.profile.company_name }}
+          </span>
+        {% endif %}
+      </div>
     </div>
-    {% if request.user.profile.company_name %}
-      <div><span class="text-slate-400">Company:</span> {{ request.user.profile.company_name }}</div>
-    {% endif %}
+    
+    <div class="flex gap-3">
+        <a href="/data-sources/" class="action-btn action-btn-primary">
+            <i class="ph-bold ph-plus"></i> Add Data
+        </a>
+        <a href="/agents/" class="action-btn action-btn-secondary">
+            <i class="ph-bold ph-robot"></i> Manage Agents
+        </a>
+    </div>
   </div>
 
-  <!-- INSIGHTS -->
-  <div class="mt-8 bg-white/5 border border-white/10 rounded-2xl p-5">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div class="flex items-center gap-3">
-        <div class="text-lg font-semibold text-white">Insights</div>
-        <div id="moodBadge" class="text-xs px-2 py-1 rounded-full border border-white/10 text-slate-200 bg-black/20">
-          — 
-        </div>
+  <!-- Filter & Controls Toolbar (New Background Color) -->
+  <div class="bg-indigo-50/60 backdrop-blur-md border border-white/60 rounded-2xl p-4 flex flex-col lg:flex-row gap-4 items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3 w-full lg:w-auto">
+      <div class="h-10 w-10 rounded-full bg-white flex items-center justify-center text-indigo-500 shadow-sm border border-indigo-100">
+        <i class="ph-bold ph-faders text-xl"></i>
+      </div>
+      <div>
+        <div class="font-bold text-sm text-slate-800">Filter View</div>
+        <div class="text-xs text-slate-500">Adjust date range & agent</div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 items-center w-full lg:w-auto justify-end">
+      <select id="fltAgent" class="lumina-input min-w-[150px] bg-white/70">
+        <option value="all">All agents</option>
+      </select>
+
+      <div class="flex items-center gap-2 bg-white/70 rounded-lg px-2 border border-white/60">
+        <input id="fltStart" type="date" class="bg-transparent border-none text-slate-700 text-sm focus:ring-0 py-2 outline-none font-mono" />
+        <span class="text-slate-400 text-xs">to</span>
+        <input id="fltEnd" type="date" class="bg-transparent border-none text-slate-700 text-sm focus:ring-0 py-2 outline-none font-mono" />
       </div>
 
-      <div class="flex flex-wrap gap-2 items-end">
-        <select id="fltAgent"
-                class="rounded-xl px-3 py-2 bg-black/20 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-teal-500">
-          <option value="all">All agents</option>
-        </select>
+      <button id="applyBtn" class="action-btn action-btn-secondary py-2 px-4 text-sm bg-white border-transparent shadow-sm">
+        Apply
+      </button>
+    </div>
+  </div>
 
-        <div class="flex items-center gap-2">
-          <input id="fltStart" type="date"
-                 class="rounded-xl px-3 py-2 bg-black/20 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-teal-500" />
-          <span class="text-slate-400 text-sm">to</span>
-          <input id="fltEnd" type="date"
-                 class="rounded-xl px-3 py-2 bg-black/20 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-teal-500" />
+  <!-- KPI Grid (5 Columns) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <!-- Card 1: Agents -->
+    <div class="kpi-card kpi-purple">
+      <div class="flex justify-between items-start mb-4">
+        <div class="p-2 bg-purple-100 text-purple-600 rounded-lg">
+          <i class="ph-bold ph-robot text-xl"></i>
         </div>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active</span>
+      </div>
+      <div>
+        <div class="text-sm text-slate-500 font-medium mb-1">Agents Live</div>
+        <div id="kpiAgentsLive" class="text-4xl font-heading text-slate-800 font-bold">—</div>
+      </div>
+    </div>
 
-        <button id="applyBtn"
-                class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold">
-          Apply
+    <!-- Card 2: Sources -->
+    <div class="kpi-card kpi-blue">
+      <div class="flex justify-between items-start mb-4">
+        <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+          <i class="ph-bold ph-database text-xl"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Knowledge</span>
+      </div>
+      <div>
+        <div class="text-sm text-slate-500 font-medium mb-1">Sources Live</div>
+        <div id="kpiSourcesLive" class="text-4xl font-heading text-slate-800 font-bold">—</div>
+      </div>
+    </div>
+
+    <!-- Card 3: Sessions -->
+    <div class="kpi-card kpi-teal">
+      <div class="flex justify-between items-start mb-4">
+        <div class="p-2 bg-teal-100 text-teal-600 rounded-lg">
+          <i class="ph-bold ph-chats-circle text-xl"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Engagement</span>
+      </div>
+      <div>
+        <div class="text-sm text-slate-500 font-medium mb-1">Chat Sessions</div>
+        <div id="kpiSessions" class="text-4xl font-heading text-slate-800 font-bold">—</div>
+      </div>
+    </div>
+
+    <!-- Card 4: Leads -->
+    <div class="kpi-card kpi-pink">
+      <div class="flex justify-between items-start mb-4">
+        <div class="p-2 bg-pink-100 text-pink-600 rounded-lg">
+          <i class="ph-bold ph-lightning text-xl"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Conversion</span>
+      </div>
+      <div>
+        <div class="text-sm text-slate-500 font-medium mb-1">Leads Captured</div>
+        <div id="kpiLeads" class="text-4xl font-heading text-slate-800 font-bold">—</div>
+      </div>
+    </div>
+
+    <!-- Card 5: Unanswered (New) -->
+    <div class="kpi-card kpi-orange">
+      <div class="flex justify-between items-start mb-4">
+        <div class="p-2 bg-orange-100 text-orange-600 rounded-lg">
+          <i class="ph-bold ph-warning-circle text-xl"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Attention</span>
+      </div>
+      <div>
+        <div class="text-sm text-slate-500 font-medium mb-1">Unanswered</div>
+        <div class="flex items-baseline gap-2">
+            <div id="kpiUnanswered" class="text-4xl font-heading text-slate-800 font-bold">—%</div>
+            <div id="moodEmoji" class="text-xl"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Line Chart -->
+    <div class="lg:col-span-2 chart-card">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+            <h3 class="font-bold text-lg text-slate-800">Session Activity</h3>
+            <p class="text-sm text-slate-500">Volume over time</p>
+        </div>
+        <button class="text-slate-400 hover:text-primary transition-colors">
+            <i class="ph-bold ph-dots-three-outline-vertical text-xl"></i>
         </button>
       </div>
-    </div>
-
-    <!-- KPI CARDS -->
-    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div class="text-xs text-slate-400">Agents live</div>
-        <div id="kpiAgentsLive" class="mt-2 text-3xl font-bold text-white">—</div>
-      </div>
-
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div class="text-xs text-slate-400">Data sources live</div>
-        <div id="kpiSourcesLive" class="mt-2 text-3xl font-bold text-white">—</div>
-      </div>
-
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div class="text-xs text-slate-400">Chat sessions</div>
-        <div id="kpiSessions" class="mt-2 text-3xl font-bold text-white">—</div>
-      </div>
-
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div class="text-xs text-slate-400">Leads submitted</div>
-        <div id="kpiLeads" class="mt-2 text-3xl font-bold text-white">—</div>
+      <div class="chart-container">
+        <canvas id="sessionsChart"></canvas>
       </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div class="text-sm text-white font-semibold">Chat sessions over time</div>
-        <div class="mt-3">
-          <canvas id="sessionsChart" height="120"></canvas>
+    <!-- Pie Chart -->
+    <div class="chart-card">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+            <h3 class="font-bold text-lg text-slate-800">Intent Mix</h3>
+            <p class="text-sm text-slate-500">Top user questions</p>
         </div>
       </div>
-
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div class="text-sm text-white font-semibold">Intent distribution</div>
-        <div class="mt-3">
-          <canvas id="intentsChart" height="160"></canvas>
-        </div>
+      <div class="chart-container" style="height: 260px;">
+        <canvas id="intentsChart"></canvas>
       </div>
-    </div>
-
-    <div class="mt-5 flex flex-wrap gap-3">
-      <a href="/data-sources/" class="px-4 py-2 rounded-full bg-teal-600 hover:bg-teal-500 text-white font-semibold transition">
-        Add Data Sources
-      </a>
-      <a href="/agents/" class="px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition">
-        Manage Agents
-      </a>
     </div>
   </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -113,15 +287,23 @@
   const kpiSourcesLive = el("kpiSourcesLive");
   const kpiSessions = el("kpiSessions");
   const kpiLeads = el("kpiLeads");
-  const moodBadge = el("moodBadge");
+  
+  // New KPI elements
+  const kpiUnanswered = el("kpiUnanswered");
+  const moodEmoji = el("moodEmoji");
 
-  const agentSelect = el("agentSelect");
-  const startDate = el("startDate");
-  const endDate = el("endDate");
+  const agentSelect = el("fltAgent");
+  const startDate = el("fltStart");
+  const endDate = el("fltEnd");
   const applyBtn = el("applyBtn");
 
   let sessionsChart = null;
   let intentsChart = null;
+
+  // Chart Global Defaults for Lumina Theme
+  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+  Chart.defaults.color = '#64748b';
+  Chart.defaults.borderColor = 'rgba(0,0,0,0.05)';
 
   function pick(obj, paths, fallback=null) {
     for (const p of paths) {
@@ -154,23 +336,57 @@
     const sessCtx = el("sessionsChart")?.getContext("2d");
     if (sessCtx) {
       if (sessionsChart) sessionsChart.destroy();
+      
+      // Gradient for line chart
+      const gradient = sessCtx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(168, 85, 247, 0.2)'); // primary color
+      gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+
       sessionsChart = new Chart(sessCtx, {
         type: "line",
         data: {
           labels: sessLabels,
           datasets: [{
-            label: "Chat sessions",
+            label: "Sessions",
             data: sessValues,
-            tension: 0.35
+            borderColor: '#a855f7',
+            backgroundColor: gradient,
+            borderWidth: 3,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#a855f7',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.4,
+            fill: true
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                titleColor: '#0f172a',
+                bodyColor: '#475569',
+                borderColor: 'rgba(0,0,0,0.05)',
+                borderWidth: 1,
+                padding: 10,
+                displayColors: false,
+                titleFont: { family: "'IBM Plex Mono', monospace", weight: 'bold' }
+            }
+          },
           scales: {
-            x: { ticks: { maxRotation: 0 } },
-            y: { beginAtZero: true }
+            x: { 
+                grid: { display: false },
+                ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }
+            },
+            y: { 
+                beginAtZero: true,
+                border: { display: false },
+                grid: { color: 'rgba(0,0,0,0.03)' }
+            }
           }
         }
       });
@@ -188,13 +404,40 @@
         data: {
           labels: intentLabels,
           datasets: [{
-            data: intentValues
+            data: intentValues,
+            backgroundColor: [
+                '#22d3ee', // Cyan
+                '#a855f7', // Purple
+                '#fb7185', // Rose
+                '#fbbf24', // Amber
+                '#34d399', // Emerald
+                '#818cf8'  // Indigo
+            ],
+            borderWidth: 0,
+            hoverOffset: 10
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: "bottom" } }
+          cutout: '65%',
+          plugins: { 
+            legend: { 
+                position: "bottom",
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    font: { size: 11 }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                bodyColor: '#0f172a',
+                borderColor: 'rgba(0,0,0,0.05)',
+                borderWidth: 1,
+                padding: 10
+            }
+          }
         }
       });
     }
@@ -210,54 +453,58 @@
     if (start) url.searchParams.set("start", start);
     if (end) url.searchParams.set("end", end);
 
-    const res = await fetch(url.toString(), { credentials: "same-origin" });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      console.error("Insights error:", data);
-      return;
-    }
-
-    // -------- Robust parsing (works with both shapes) --------
-    const cards = pick(data, ["cards", "kpis"], {});
-    const agentsLive = pick(cards, ["agents_live"], 0);
-    const sourcesLive = pick(cards, ["data_sources_live", "sources_live"], 0);
-    const sessions = pick(cards, ["chat_sessions", "sessions"], 0);
-    const leads = pick(cards, ["leads_submitted", "leads"], 0);
-
-    setText(kpiAgentsLive, agentsLive);
-    setText(kpiSourcesLive, sourcesLive);
-    setText(kpiSessions, sessions);
-    setText(kpiLeads, leads);
-
-    const unanswered = pick(data, ["unanswered"], null);
-    const unansweredPct = unanswered
-      ? pick(unanswered, ["percent"], 0)
-      : pick(cards, ["unanswered_pct"], 0);
-
-    const mood = unanswered
-      ? pick(unanswered, ["mood"], "good")
-      : pick(cards, ["mood"], "good");
-
-    if (moodBadge) {
-      moodBadge.textContent = `${moodToEmoji(mood)} ${unansweredPct}% unanswered`;
-    }
-
-    const sessionsSeries =
-      pick(data, ["sessions_over_time"], null)
-      || pick(data, ["series.sessions"], []);
-
-    const intents =
-      pick(data, ["intent_distribution"], null)
-      || pick(data, ["intents"], []);
-
-    renderCharts(sessionsSeries, intents);
-
-    // Populate agents dropdown (only once)
-    const agents = pick(data, ["agents"], []);
-    if (agentSelect && agentSelect.options.length <= 1 && agents.length) {
-      agentSelect.innerHTML = `<option value="all">All agents</option>` +
-        agents.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
-      agentSelect.value = agentId;
+    try {
+        const res = await fetch(url.toString(), { credentials: "same-origin" });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          console.error("Insights error:", data);
+          return;
+        }
+    
+        // -------- Robust parsing (works with both shapes) --------
+        const cards = pick(data, ["cards", "kpis"], {});
+        const agentsLive = pick(cards, ["agents_live"], 0);
+        const sourcesLive = pick(cards, ["data_sources_live", "sources_live"], 0);
+        const sessions = pick(cards, ["chat_sessions", "sessions"], 0);
+        const leads = pick(cards, ["leads_submitted", "leads"], 0);
+    
+        setText(kpiAgentsLive, agentsLive);
+        setText(kpiSourcesLive, sourcesLive);
+        setText(kpiSessions, sessions);
+        setText(kpiLeads, leads);
+    
+        const unanswered = pick(data, ["unanswered"], null);
+        const unansweredPct = unanswered
+          ? pick(unanswered, ["percent"], 0)
+          : pick(cards, ["unanswered_pct"], 0);
+    
+        const mood = unanswered
+          ? pick(unanswered, ["mood"], "good")
+          : pick(cards, ["mood"], "good");
+    
+        // Update new metric card
+        setText(kpiUnanswered, unansweredPct + "%");
+        if (moodEmoji) moodEmoji.textContent = moodToEmoji(mood);
+    
+        const sessionsSeries =
+          pick(data, ["sessions_over_time"], null)
+          || pick(data, ["series.sessions"], []);
+    
+        const intents =
+          pick(data, ["intent_distribution"], null)
+          || pick(data, ["intents"], []);
+    
+        renderCharts(sessionsSeries, intents);
+    
+        // Populate agents dropdown (only once)
+        const agents = pick(data, ["agents"], []);
+        if (agentSelect && agentSelect.options.length <= 1 && agents.length) {
+           agentSelect.innerHTML = `<option value="all">All agents</option>` +
+            agents.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+           agentSelect.value = agentId;
+        }
+    } catch (e) {
+        console.error("Failed to load insights", e);
     }
   }
 
