@@ -2,148 +2,246 @@
 {% block title %}Mira — Add Data Sources{% endblock %}
 
 {% block content %}
-  <div class="glass rounded-2xl p-6 md:p-8 shadow-xl animate-fadeIn">
+<style>
+    /* Tooltip Styles */
+    .lumina-tooltip {
+        position: absolute;
+        bottom: 100%; 
+        left: 50%;
+        transform: translateX(-50%) translateY(-10px);
+        background: rgba(15, 23, 42, 0.9);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.8rem;
+        white-space: normal;
+        width: 220px;
+        text-align: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s var(--bounce);
+        z-index: 20;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        font-family: var(--font-body);
+    }
+
+    .lumina-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 6px;
+        border-style: solid;
+        border-color: rgba(15, 23, 42, 0.9) transparent transparent transparent;
+    }
+
+    .source-card:hover .lumina-tooltip {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-15px);
+    }
+
+    /* Card Animations */
+    .source-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        transition: all 0.4s var(--bounce);
+        position: relative;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        justify-content: center;
+        min-height: 240px; /* Taller cards */
+    }
+
+    .source-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px -5px rgba(168, 85, 247, 0.15);
+        border-color: var(--primary);
+    }
+
+    .source-card.active {
+        border-color: var(--primary);
+        background: white;
+        box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15);
+    }
+
+    /* Icon Animations */
+    .source-icon-box {
+        width: 80px; /* Bigger icon box */
+        height: 80px;
+        border-radius: 24px; /* More rounded */
+        display: grid;
+        place-items: center;
+        font-size: 2.5rem; /* Bigger icon */
+        margin-bottom: 1.5rem;
+        transition: transform 0.4s var(--bounce);
+    }
+
+    .source-card:hover .source-icon-box {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    /* Specific Icon Colors/Gradients */
+    .icon-website { background: linear-gradient(135deg, #22d3ee, #06b6d4); color: white; }
+    .icon-sheet   { background: linear-gradient(135deg, #34d399, #10b981); color: white; }
+    .icon-doc     { background: linear-gradient(135deg, #a855f7, #7e22ce); color: white; }
+    .icon-custom  { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+
+    /* Right side placeholder animation */
+    @keyframes pulse-ring {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1); }
+        70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(0, 0, 0, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+    }
+    
+    .plus-icon-anim {
+        animation: pulse-ring 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+
+</style>
+
+<div class="max-w-7xl mx-auto space-y-8 animate-fadeIn p-4">
     
     <!-- Header -->
-    <div class="mb-8 border-b border-white/10 pb-6">
-      <h1 class="text-3xl font-bold text-white mb-2">Add Data Sources</h1>
-      <p class="text-slate-400 max-w-2xl">
-        Choose what you want Mira to learn from. Connect your knowledge base to power accurate, context-aware answers.
-      </p>
+    <div class="text-center md:text-left border-b border-gray-200/50 pb-8">
+        <h1 style="font-family: var(--font-heading); font-size: 3rem; margin-bottom: 0.5rem; line-height: 1.1;">
+            Add Data Sources
+        </h1>
+        <p class="text-slate-500 text-lg max-w-2xl">
+            Select any data source, and add it for your agents to access.
+        </p>
     </div>
 
-    <!-- Data Source Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-      
-      <!-- Website Card -->
-      <a href="/data-sources/website/new/{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}"
-         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
-         {% if selected == 'website' %}
-           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
-         {% else %}
-           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
-         {% endif %}">
-         
-         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <i class="fa-solid fa-globe text-6xl {% if selected == 'website' %}text-brand-500{% else %}text-white{% endif %}"></i>
-         </div>
-
-         <div class="relative z-10 flex flex-col h-full justify-between">
-           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
-             {% if selected == 'website' %}bg-brand-500 text-white{% else %}bg-white/10 text-brand-400{% endif %}">
-             <i class="fa-solid fa-globe text-xl"></i>
-           </div>
-           <div>
-             <div class="text-white font-semibold text-lg mb-1">Website</div>
-             <div class="text-sm text-slate-400">Crawl domains & sitemaps</div>
-           </div>
-         </div>
-      </a>
-
-      <!-- Documents Card -->
-      <a href="/data-sources/documents/new/"
-         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
-         {% if selected == 'document' %}
-           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
-         {% else %}
-           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
-         {% endif %}">
-         
-         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <i class="fa-regular fa-file-pdf text-6xl {% if selected == 'document' %}text-brand-500{% else %}text-white{% endif %}"></i>
-         </div>
-
-         <div class="relative z-10 flex flex-col h-full justify-between">
-           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
-             {% if selected == 'document' %}bg-brand-500 text-white{% else %}bg-white/10 text-purple-400{% endif %}">
-             <i class="fa-solid fa-file-lines text-xl"></i>
-           </div>
-           <div>
-             <div class="text-white font-semibold text-lg mb-1">Documents</div>
-             <div class="text-sm text-slate-400">PDFs, DOCX, TXT files</div>
-           </div>
-         </div>
-      </a>
-
-      <!-- Sheets Card -->
-      <a href="{% url 'sheet_source_new' %}"
-         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
-         {% if selected == 'sheet' %}
-           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
-         {% else %}
-           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
-         {% endif %}">
-         
-         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <i class="fa-solid fa-table text-6xl {% if selected == 'sheet' %}text-brand-500{% else %}text-white{% endif %}"></i>
-         </div>
-
-         <div class="relative z-10 flex flex-col h-full justify-between">
-           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
-             {% if selected == 'sheet' %}bg-brand-500 text-white{% else %}bg-white/10 text-green-400{% endif %}">
-             <i class="fa-solid fa-table-cells text-xl"></i>
-           </div>
-           <div>
-             <div class="text-white font-semibold text-lg mb-1">Sheets</div>
-             <div class="text-sm text-slate-400">CSV & Excel spreadsheets</div>
-           </div>
-         </div>
-      </a>
-
-      <!-- Custom Info Card -->
-      <a href="/data-sources/custom/new/"
-         class="group relative rounded-2xl border p-5 transition-all duration-200 overflow-hidden
-         {% if selected == 'custom' %}
-           bg-brand-500/10 border-brand-500 ring-1 ring-brand-500
-         {% else %}
-           bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-lg
-         {% endif %}">
-         
-         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <i class="fa-solid fa-align-left text-6xl {% if selected == 'custom' %}text-brand-500{% else %}text-white{% endif %}"></i>
-         </div>
-
-         <div class="relative z-10 flex flex-col h-full justify-between">
-           <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4
-             {% if selected == 'custom' %}bg-brand-500 text-white{% else %}bg-white/10 text-amber-400{% endif %}">
-             <i class="fa-solid fa-pen-to-square text-xl"></i>
-           </div>
-           <div>
-             <div class="text-white font-semibold text-lg mb-1">Custom Info</div>
-             <div class="text-sm text-slate-400">Paste FAQs, policies, snippets</div>
-           </div>
-         </div>
-      </a>
-    </div>
-
-    <!-- Conditional Action Area -->
-    <div class="bg-dark-800/50 border border-white/5 rounded-2xl p-8 text-center transition-all duration-300">
-      {% if selected %}
-        <div class="animate-fadeIn">
-            <div class="w-16 h-16 bg-brand-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-400">
-                {% if selected == 'website' %}<i class="fa-solid fa-globe text-2xl"></i>{% endif %}
-                {% if selected == 'document' %}<i class="fa-solid fa-file-lines text-2xl"></i>{% endif %}
-                {% if selected == 'sheet' %}<i class="fa-solid fa-table-cells text-2xl"></i>{% endif %}
-                {% if selected == 'custom' %}<i class="fa-solid fa-pen-to-square text-2xl"></i>{% endif %}
-            </div>
+    <!-- Main Layout: Grid vs Config -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        
+        <!-- Left Column: Data Source Grid (2x2) -->
+        <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
             
-            <h2 class="text-xl font-bold text-white mb-2">Configure {{ selected|title }} Source</h2>
-            <p class="text-slate-400 max-w-md mx-auto mb-6">
-              You've selected <strong>{{ selected|title }}</strong>. The specific configuration form for this data type will appear here.
-            </p>
+            <!-- Website Card -->
+            <a href="/data-sources/website/new/{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}" 
+               class="source-card p-10 {% if selected == 'website' %}active{% endif %}">
+                
+                <div class="source-icon-box icon-website">
+                    <i class="ph-bold ph-globe"></i>
+                </div>
+                
+                <h3 class="font-bold text-2xl mb-2 text-slate-800">Website</h3>
+                <p class="text-base text-slate-500">Crawl domains & sitemaps</p>
+                
+                <!-- Tooltip -->
+                <div class="lumina-tooltip">
+                    Add new websites as data sources. We will read through your content and your agent will handle the rest.
+                </div>
+            </a>
 
-            <!-- Placeholder Button for UI completeness -->
-            <button class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-full shadow-lg shadow-brand-500/20 transition-all">
-                Continue Setup <i class="fa-solid fa-arrow-right ml-2"></i>
-            </button>
+            <!-- Sheet Card -->
+            <a href="{% url 'sheet_source_new' %}" 
+               class="source-card p-10 {% if selected == 'sheet' %}active{% endif %}">
+                
+                <div class="source-icon-box icon-sheet">
+                    <i class="ph-bold ph-table"></i>
+                </div>
+                
+                <h3 class="font-bold text-2xl mb-2 text-slate-800">Sheet</h3>
+                <p class="text-base text-slate-500">CSV & Excel tables</p>
+
+                <!-- Tooltip -->
+                <div class="lumina-tooltip">
+                    Add data tables like contacts or partner lists that your chatbot can access to help users.
+                </div>
+            </a>
+
+            <!-- Document Card -->
+            <a href="/data-sources/documents/new/" 
+               class="source-card p-10 {% if selected == 'document' %}active{% endif %}">
+                
+                <div class="source-icon-box icon-doc">
+                    <i class="ph-bold ph-file-text"></i>
+                </div>
+                
+                <h3 class="font-bold text-2xl mb-2 text-slate-800">Document</h3>
+                <p class="text-base text-slate-500">PDFs, DOCX, TXT</p>
+
+                <!-- Tooltip -->
+                <div class="lumina-tooltip">
+                    Want your chatbot to recommend files? Add PDFs or Docs here for it to learn from.
+                </div>
+            </a>
+
+            <!-- Custom Card -->
+            <a href="/data-sources/custom/new/" 
+               class="source-card p-10 {% if selected == 'custom' %}active{% endif %}">
+                
+                <div class="source-icon-box icon-custom">
+                    <i class="ph-bold ph-pencil-simple-line"></i>
+                </div>
+                
+                <h3 class="font-bold text-2xl mb-2 text-slate-800">Custom</h3>
+                <p class="text-base text-slate-500">Manual text entry</p>
+
+                <!-- Tooltip -->
+                <div class="lumina-tooltip">
+                    Missed something? Paste FAQs, policies, or snippets unavailable elsewhere.
+                </div>
+            </a>
+
         </div>
-      {% else %}
-        <div class="text-slate-500 py-4">
-            <i class="fa-solid fa-arrow-up text-2xl mb-3 block opacity-50"></i>
-            <span class="font-medium">Select a data source type above to begin configuration.</span>
+
+        <!-- Right Column: Configuration or Placeholder -->
+        <div class="lg:col-span-5 flex flex-col h-full">
+            {% if selected %}
+                <!-- Active Config State -->
+                <div class="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-8 text-center shadow-lg animate-fadeIn relative overflow-hidden h-full flex flex-col justify-center">
+                    
+                    <!-- Background decoration -->
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500"></div>
+                    
+                    <div class="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-4xl text-white shadow-md
+                        {% if selected == 'website' %}bg-gradient-to-br from-cyan-400 to-blue-500
+                        {% elif selected == 'sheet' %}bg-gradient-to-br from-emerald-400 to-green-600
+                        {% elif selected == 'document' %}bg-gradient-to-br from-purple-400 to-indigo-600
+                        {% else %}bg-gradient-to-br from-amber-400 to-orange-500{% endif %}">
+                        
+                        {% if selected == 'website' %}<i class="ph-bold ph-globe"></i>{% endif %}
+                        {% if selected == 'document' %}<i class="ph-bold ph-file-text"></i>{% endif %}
+                        {% if selected == 'sheet' %}<i class="ph-bold ph-table"></i>{% endif %}
+                        {% if selected == 'custom' %}<i class="ph-bold ph-pencil-simple-line"></i>{% endif %}
+                    </div>
+                    
+                    <h2 style="font-family: var(--font-heading);" class="text-3xl font-bold text-slate-800 mb-4">
+                        Configure {{ selected|title }}
+                    </h2>
+                    
+                    <p class="text-slate-600 mb-8 text-lg">
+                        You've selected <strong>{{ selected|title }}</strong>. The specific configuration form for this data type will appear here.
+                    </p>
+
+                    <button class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold text-lg transition-all hover:scale-105 shadow-xl">
+                        Continue Setup <i class="ph-bold ph-arrow-right"></i>
+                    </button>
+                </div>
+            {% else %}
+                <!-- Empty State Placeholder -->
+                <div class="h-full min-h-[400px] border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center p-8 text-center bg-white/20 backdrop-blur-sm">
+                    <div class="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6 shadow-sm plus-icon-anim">
+                        <i class="ph-bold ph-plus text-5xl text-black"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-black mb-2" style="font-family: var(--font-heading);">
+                        Select a data source type above to begin.
+                    </h3>
+                    <p class="text-slate-500">
+                        Choose an option from the grid on the left.
+                    </p>
+                </div>
+            {% endif %}
         </div>
-      {% endif %}
+
     </div>
 
-  </div>
+</div>
 {% endblock %}
