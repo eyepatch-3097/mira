@@ -102,6 +102,222 @@
         animation: pulse-ring 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
     }
 
+    /* --- The Cat Track (Movement) --- */
+    .cat-track {
+        position: fixed;
+        bottom: 0px;
+        right: 40px; /* Starting Point */
+        width: 140px;
+        height: 120px;
+        z-index: 50;
+        pointer-events: none; /* Let clicks pass through empty space */
+        animation: roam 25s linear infinite alternate;
+    }
+
+    /* Roam Animation Keyframes */
+    @keyframes roam {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(calc(-100vw + 200px)); } /* Move left across screen */
+    }
+
+    .cat-track:hover {
+        animation-play-state: paused;
+    }
+
+    /* --- The Cat Wrapper (Interaction/Bounce) --- */
+    .cat-wrapper {
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+        pointer-events: auto; /* Re-enable clicks on the cat itself */
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+    }
+
+    .cat-wrapper:hover {
+        transform: translateY(-40px) scale(1.05);
+    }
+
+    /* Modern Flat Cat Head */
+    .head {
+        position: absolute;
+        bottom: -20px; 
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 100px;
+        background: #D98E58; /* Warm modern brown */
+        border-radius: 50px 50px 40px 40px;
+        box-shadow: 0 10px 25px rgba(217, 142, 88, 0.4);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .cat-wrapper:hover .head {
+        transform: translateX(-50%) translateY(-10px) scale(1.05);
+    }
+
+    /* Ears */
+    .ear {
+        position: absolute;
+        top: -20px;
+        width: 40px;
+        height: 40px;
+        background: #D98E58;
+        border-radius: 10px;
+        z-index: -1; 
+        transition: transform 0.3s;
+    }
+
+    .ear.left { left: 5px; transform: rotate(-15deg); }
+    .ear.right { right: 5px; transform: rotate(15deg); }
+    
+    .cat-wrapper:hover .ear.left { transform: rotate(-25deg) translateY(-5px); }
+    .cat-wrapper:hover .ear.right { transform: rotate(25deg) translateY(-5px); }
+
+    .ear::after {
+        content: '';
+        position: absolute;
+        top: 8px; left: 8px; right: 8px; bottom: 8px;
+        background: #F4C4A3; 
+        border-radius: 6px;
+    }
+
+    /* Face Elements */
+    .face { position: relative; width: 100%; height: 100%; }
+
+    .eye {
+        position: absolute;
+        top: 35px;
+        width: 28px;
+        height: 28px;
+        background: #fff;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        animation: blink 4s infinite;
+    }
+
+    .eye.left { left: 24px; }
+    .eye.right { right: 24px; }
+
+    .pupil {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 16px; height: 16px;
+        background: #333;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: lookAround 6s infinite ease-in-out;
+    }
+    
+    .pupil::after {
+        content: '';
+        position: absolute;
+        top: 3px; left: 3px;
+        width: 6px; height: 6px;
+        background: rgba(255,255,255,0.8);
+        border-radius: 50%;
+    }
+
+    .nose {
+        position: absolute;
+        top: 62px; left: 50%;
+        transform: translateX(-50%);
+        width: 12px; height: 8px;
+        background: #7A4B3A; 
+        border-radius: 4px 4px 6px 6px;
+    }
+
+    .whiskers { position: absolute; top: 65px; width: 100%; }
+
+    .whisker {
+        position: absolute;
+        width: 20px; height: 2px;
+        background: rgba(122, 75, 58, 0.3);
+        border-radius: 2px;
+    }
+
+    .left-whiskers .w1 { left: 5px; top: 0; transform: rotate(5deg); }
+    .left-whiskers .w2 { left: 5px; top: 6px; transform: rotate(-5deg); }
+    .right-whiskers .w1 { right: 5px; top: 0; transform: rotate(-5deg); }
+    .right-whiskers .w2 { right: 5px; top: 6px; transform: rotate(5deg); }
+
+    /* Bubble */
+    .bubble {
+        position: absolute;
+        top: -80px;
+        left: 50%;
+        transform: translateX(-50%) scale(0.8);
+        background: #333;
+        color: white;
+        padding: 10px 18px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        white-space: nowrap;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        z-index: 100;
+    }
+
+    .bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 6px 6px 0;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+    }
+
+    .cat-wrapper:hover .bubble {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+    
+    /* Paws */
+    .paws {
+        position: absolute;
+        bottom: -5px;
+        width: 100%;
+        height: 20px;
+        z-index: 10;
+    }
+    
+    .paw {
+        position: absolute;
+        bottom: 0;
+        width: 24px;
+        height: 15px;
+        background: #F4C4A3; 
+        border-radius: 10px 10px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.3s ease 0.1s;
+    }
+    
+    .paw.left { left: 30px; }
+    .paw.right { right: 30px; }
+    
+    .cat-wrapper:hover .paw {
+        transform: translateY(0);
+    }
+
+    /* Keyframes */
+    @keyframes blink {
+        0%, 48%, 52%, 100% { transform: scaleY(1); }
+        50% { transform: scaleY(0.1); }
+    }
+
+    @keyframes lookAround {
+        0%, 100% { transform: translate(-50%, -50%); } 
+        20% { transform: translate(-70%, -50%); } 
+        50% { transform: translate(-50%, -60%); } 
+        80% { transform: translate(-30%, -50%); } 
+    }
+
 </style>
 
 <div class="max-w-7xl mx-auto space-y-8 animate-fadeIn p-4">
@@ -243,5 +459,75 @@
 
     </div>
 
+    <!-- Animated Cat Track (Movement) -->
+    <div class="cat-track">
+        <!-- Cat Wrapper (Bounce/Hover) -->
+        <div class="cat-wrapper" onmouseenter="interact()" onclick="interact()">
+            <div class="bubble">I love data! 🐟</div>
+            
+            <!-- Ears Behind Head -->
+            <div class="ear left"></div>
+            <div class="ear right"></div>
+            
+            <!-- Head -->
+            <div class="head">
+                <div class="face">
+                    <div class="eye left"><div class="pupil"></div></div>
+                    <div class="eye right"><div class="pupil"></div></div>
+                    
+                    <div class="nose"></div>
+                    
+                    <div class="whiskers left-whiskers">
+                        <div class="whisker w1"></div>
+                        <div class="whisker w2"></div>
+                    </div>
+                    <div class="whiskers right-whiskers">
+                        <div class="whisker w1"></div>
+                        <div class="whisker w2"></div>
+                    </div>
+                </div>
+                
+                <!-- Paws appear on hover -->
+                <div class="paws">
+                    <div class="paw left"></div>
+                    <div class="paw right"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    function interact() {
+        const bubble = document.querySelector('.bubble');
+        const messages = [
+            "Upload that PDF, I dare you!",
+            "Websites are tasty data snacks.",
+            "I'm hungrier for data than tuna.",
+            "Did you know Excel sheets are high in protein?",
+            "Your agent needs brain food!",
+            "Click a card, get a smart bot.",
+            "I'm patroling for knowledge gaps.",
+            "Is that a CSV? Yum!",
+            "More sources = Smarter Agents.",
+            "Don't leave me hanging, add something!"
+        ];
+        
+        const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+        bubble.innerText = randomMsg;
+        
+        // Add a little bounce effect
+        const catWrapper = document.querySelector('.cat-wrapper');
+        catWrapper.style.transform = 'translateY(-50px) scale(1.1)';
+        setTimeout(() => {
+            catWrapper.style.transform = ''; 
+        }, 200);
+    }
+    
+    // Set initial random message
+    window.addEventListener('DOMContentLoaded', () => {
+       interact(); 
+    });
+</script>
 {% endblock %}
